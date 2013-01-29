@@ -1,0 +1,16 @@
+html, body {
+	margin:0;
+	width:100%;
+	height:100%;
+	background-color: #333B40;
+	color:#A1B8C6;
+	padding:0;
+	overflow:hidden;
+	font-family: 'Monda', sans-serif;
+}
+
+
+canvas {
+	border:2px dashed #FFF;
+	background-color: #000;
+}

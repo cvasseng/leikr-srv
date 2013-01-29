@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Leikr</title>
+
+		<meta charset="UTF-8" />
+
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+
+		<script src="/socket.io/socket.io.js"></script>
+
+
+		
+	
+
+		<link href='http://fonts.googleapis.com/css?family=Monda' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+
+	</head>
+
+<body>
+
+
+	<h2>Leikr Test</h2>
+	<div id="container" style="margin:0 auto;postion:fixed;left:0px;top:0px;"></div>
+
+</body>
+
+		<script src="js/leikr.js"></script>
+		<script src="js/lei.sprite.js"></script>
+		<script src="js/lei.surface.js"></script>
+		<script src="js/lei.world.js"></script>
+		<script src="js/lei.tile.js"></script>
+
+<script>
+		
+//	var surface = new lei.Surface();
+////	surface.attachTo(document.getElementById('container'));
+//	surface.resize(1000, 600);
+//  surface.blitText({str:'Hello world!'});
+$(document).ready(function () {
+
+	var keys = [];
+
+  lei.world.init(document.getElementById('container'));
+
+  var socket = io.connect();
+
+  document.body.onkeyup = function (e) {
+  	
+  	keys[e.keyCode] = false;
+
+  	if (keys[65] !== true && keys[68] !== true) {
+  		socket.emit('move', {moving:false});
+  	}
+  };
+
+  document.body.onkeydown = function (e) {
+  	var key = e.keyCode, direction = false;
+  	
+  	if (key == 65 && keys[key] !== true) {
+			direction = 'left';
+		}
+		if (key == 68 && keys[key] !== true) {
+			direction = 'right';
+		}
+		if (key == 32 && keys[key] !== true) {
+			socket.emit('jump');
+		}
+
+		console.log(key + ' ' + keys[key]);
+
+		keys[key] = true;
+
+		if (direction) {
+			socket.emit('move', {
+				moving: true,
+				direction: direction
+			});
+		}
+  };
+
+  socket.on('connect', function () {
+  	lei.world.clear();
+  	lei.world.flush();
+  	socket.emit('logon');
+  });
+
+  socket.on('tile', function (data) {
+  	lei.world.setTile(data.tx, data.ty, data.tile);
+  });
+
+  socket.on('chunk', function (chunk) {
+  	lei.world.applyChunk(chunk);
+  }); 
+
+  socket.on('player', function (data) {
+  	//Data contains a full player package.
+  	lei.world.setPlayerData(data);
+  });
+
+  socket.on('actor_update', function (data) {
+
+  	lei.world.updateActor(data);
+  });
+
+  //Spawn something
+  socket.on('spawn', function (data) {
+  	console.log('Spawning actor: ' + JSON.stringify(data));
+  	lei.world.spawn(data);
+  });
+
+  //Despawn something
+  socket.on('despawn', function (id) {
+  	console.log('Despawning actor: ' + id);
+  	lei.world.despawn(id);
+  });
+
+});
+</script>
+
+</html>

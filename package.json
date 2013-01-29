@@ -1,0 +1,18 @@
+{
+  "author": "Chris M. Vasseng <cvasseng@gmail.com>",
+  "name": "leikr-srv",
+  "description": "Mining simulator supreme",
+  "version": "0.0.1",
+  "licence":"Commercial",
+  "private":true,
+  "bin": {
+    "leikr-srv":"./bin/leikr-srv.js"
+  },
+  "dependencies": {
+   	"colors":"*",
+    "optimist":">=0.0.1",
+    "socket.io":"*",
+    "express":"*",
+    "progress":"*"
+  }
+}

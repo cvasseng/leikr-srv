@@ -1,0 +1,481 @@
+
+var tile = require('../lib/lei.tile'),
+		world = require('../lib/lei.world'),
+		common = require('../lib/lei.common'),
+		actors = require('../lib/lei.actor'),
+		express = require('express'),
+		app = express(),
+		server = require('http').createServer(app),
+		io = require('socket.io').listen(server, { log: false });
+
+
+common.printFile('welcome.msg');
+console.log('Starting Leikr..'.black.bold);
+console.log('');
+
+
+
+
+
+function ValueNoise(width, height, startOctave, endOctave, persistence, smoothAmount, postprocess)
+{
+	var valueNoiseMap = new Float32Array(width * height);
+
+	// We're storing the random data samples in a quadtree
+	// octave 0 is the whole area
+	// octave 1 is the area divided by 4
+	// octave n is the previous octave with each area divided by 4
+	var startOctave = 3;
+	// Go to the pixel level. This algorithm assumes base 2 area
+	var endOctave = 7; //Math.log(width) / Math.log(2) - 2;
+
+	// We need 4 points to do bilinear interpolation from for the noise generation for each octave.
+	// This is the summation of Math.pow(2, i + 1) - Math.pow(2, i) + 1 which represents the
+	// number of corners per depth of a quadtree. So depth zero has 4 and depth one has 9.
+	var nodeCount = 1 / 3 * (3 * (endOctave + 1) + 3 * Math.pow(2, (endOctave + 1) + 2) + Math.pow(2, 2 * (endOctave + 1) + 2) - 4) -
+	                1 / 3 * (3 * startOctave + 3 * Math.pow(2, startOctave + 2) + Math.pow(2, 2 * startOctave + 2) - 4);
+
+	var randomTree = new Float32Array(nodeCount);
+	for (var i = 0; i < randomTree.length; ++i)
+	{
+		randomTree[i] = Math.random();
+	}
+	// Make it tileable
+	for (var i = startOctave; i <= endOctave; ++i)
+	{
+		var octaveSize = Math.pow(2, i + 1) - Math.pow(2, i) + 1;
+		var indexOffset = 1 / 3 * (3 * i  + 3 * Math.pow(2, i + 2) + Math.pow(2, 2 * i + 2) - 4) -
+	                         1 / 3 * (3 * startOctave + 3 * Math.pow(2, startOctave + 2) + Math.pow(2, 2 * startOctave + 2) - 4);
+		for(var y = 0; y < octaveSize; ++y)
+		{
+			randomTree[indexOffset + y * octaveSize] = randomTree[indexOffset + y * octaveSize + octaveSize - 1];
+		}
+
+		for(var x = 0; x < octaveSize; ++x)
+		{
+			randomTree[indexOffset + x] = randomTree[indexOffset + (octaveSize - 1) * octaveSize + x];
+		}
+	}
+
+	for(var y = 0; y < height; ++y)
+	{
+		for(var x = 0; x < width; ++x)
+		{
+			valueNoiseMap[y * width + x] = 0;
+			for (var i = startOctave; i <= endOctave; ++i)
+			{
+				var cellSize = width / Math.pow(2, i);
+
+				var integerX = Math.floor(x / cellSize);
+				var integerY = Math.floor(y / cellSize);
+				var indexOffset = 1 / 3 * (3 * i  + 3 * Math.pow(2, i + 2) + Math.pow(2, 2 * i + 2) - 4) -
+				                  1 / 3 * (3 * startOctave + 3 * Math.pow(2, startOctave + 2) + Math.pow(2, 2 * startOctave + 2) - 4);
+		
+				
+				var fractionalX = (x - integerX * cellSize) / cellSize;
+				var fractionalY = (y - integerY * cellSize) / cellSize;
+				//Log(cellSize + " " + fractionalX + " " + fractionalY);
+				var octaveSize = Math.pow(2, i + 1) - Math.pow(2, i) + 1;
+				var i1 = Interpolate(randomTree[indexOffset + integerY * octaveSize + integerX],
+				                     randomTree[indexOffset + integerY * octaveSize + integerX + 1],
+				                     fractionalX);
+				var i2 = Interpolate(randomTree[indexOffset + (integerY + 1) * octaveSize + integerX],
+				                     randomTree[indexOffset + (integerY + 1) * octaveSize + integerX + 1],
+				                     fractionalX);
+
+				valueNoiseMap[y * width + x] += Interpolate(i1 , i2 , fractionalY) * Math.pow(persistence, i - startOctave);
+				// Smooth and then normalize at the very end
+			}
+		}
+	}
+
+	Smooth(width, height, valueNoiseMap, smoothAmount);
+
+	Normalize(width, height, valueNoiseMap, 0, 1);
+
+	if (postprocess)
+	{
+		postprocess(valueNoiseMap);
+	}
+
+	return valueNoiseMap;
+}
+
+function Smooth(width, height, noise, amount)
+{
+	// Smooth
+	for (var i = 0; i < amount; ++i)
+	{
+		for (var y = 0; y < height; ++y)
+		{
+			for(var x = 0; x < width; ++x)
+			{
+				var xMinus1 = x == 0 ? width - 1 : x - 1;
+				var yMinus1 = y == 0 ? height - 1 : y - 1;
+				var xPlus1 = (x + 1) % width;
+				var yPlus1 = (y + 1) % height;
+				var corners = (noise[yMinus1 * width + xMinus1] + 
+				               noise[yMinus1 * width + xPlus1] + 
+				               noise[yPlus1 * width + xPlus1] + 
+				               noise[yPlus1 * width + xMinus1]) / 16.0;
+				var sides   = (noise[y * width + xMinus1] + 
+				               noise[y * width + xPlus1] + 
+				               noise[yMinus1 * width + x] + 
+				               noise[yPlus1 * width + x]) / 8.0;
+				var center  = noise[y * width + x] / 4.0;
+				noise[y * width + x] = corners + sides + center;
+			}
+		}
+	}
+}
+
+function Normalize(width, height, noise, minimum, maximum) {
+	var min = Number.MAX_VALUE;
+	var max = -Number.MAX_VALUE;
+
+	// Calculate min and max range used to normalize with
+	for (var y = 0; y < height; ++y) {
+		for(var x = 0; x < width; ++x) {
+			min = Math.min(min, noise[y * width + x]);
+			max = Math.max(max, noise[y * width + x]);
+		}
+	}
+
+	// Normalize the range to 0 to 1
+	for (var y = 0; y < height; ++y) {
+		for(var x = 0; x < width; ++x) {
+			noise[y * width + x] = (noise[y * width + x] - min) / (max - min) * (maximum - minimum) + minimum;
+		}
+	}
+}
+
+function Interpolate(a, b, x) {
+	var ft = x * 3.1415927;
+	var f = (1 - Math.cos(ft)) * 0.5;
+	return a * (1 - f) + b * f;
+}
+
+
+function genMap() {
+	var width = 100, height = 50, surfaceY = 40, highY = 10;
+
+	//Generate surface
+	surfaceHeight = ValueNoise(width, 1, 3, 7, 0.6, 10);
+
+	//Put the surface line in
+	for (var x = 0; x < width; x++) {
+		var y = highY + Math.floor(surfaceHeight[x] * 20);
+		
+
+		//Fill downwards until we hit the surface Y
+		for (var y2 = y; y2 < surfaceY; y2++) {
+			world.setTile(x, y2, tile.create(3, 0, 0, 0, 0));
+		}
+
+	}
+
+	//return;
+
+	common.progressLog('Generating raw world data', height * 3);
+
+	noiseMap = ValueNoise(width, height, 3, 7, 0.6, 10, function (noise) {
+
+			for (var y = 0; y < height; ++y)
+			{
+				for(var x = 0; x < width; ++x)
+				{
+					noise[y * width + x] = noise[y * width + x] < 0.3 || noise[y * width + x] > 0.7 ? 0.5 : 0;
+				}
+			}
+
+	});
+
+	common.progressLog('Building world from raw data', width * height);
+	for (var y = surfaceY; y < height; y++){
+		for (var x = 0; x < width; x++) {
+			world.setTile(x, y, tile.create(Math.floor(noiseMap[x + y * width] * 2) * 3, 0, 0, 0, 0));
+			//console.log(Math.floor(noiseMap[x + y * width] * 15)  );
+			common.progressLog('Building world from raw data', width * height);
+	
+		}
+	}
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+world.on('log', function (err, msg, status) {
+	common.log(msg, err === false, err === false ? undefined : err);
+});
+
+world.on('actor_enter_chunk', function (err, actor, chunk) {
+	common.log('Actor ' + actor.id + ' entered chunk ' + chunk.id, err === false, err === false ? undefined : err);
+});
+
+world.on('actor_leave_chunk', function (err, actor, chunk) {
+	common.log('Actor ' + actor.id + ' left chunk ' + chunk.id, err === false, err === false ? undefined : err);
+});
+
+
+world.on('progress', function (err, msg, max) {
+	common.progressLog(msg, max);
+});
+
+world.on('tile_change', function (err, chunk, tx, ty, tile) {
+
+	//It should be broadcast to all the players on the chunk.
+	chunk.actors.forEach(function (player) {
+		player.socket.emit('tile', {
+			tx: tx,
+			ty: ty,
+			tile: tile
+		})
+	});
+
+});
+
+//Initialize the world
+world.init({
+	width:1000,
+	height:500
+});
+
+genMap();
+
+////////////////////////////////////////////////////////////////////////////////
+
+///Net stuff
+server.listen(7523);
+
+app.use(express.static(__dirname + '/../public' ));
+
+//This list only contains the other playerss
+var players = [];
+
+io.on('connection', function (socket) {
+	common.log('New player connected', true);
+
+	//Authorized?
+	var isAuthorized = false;
+	//The player
+	var player = 0;
+	//Events that should be cleared when disconnecting
+	var eventAttachements = [];
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Auth check
+	var authCheck = function () {
+		if (!isAuthorized) {
+			socket.emit('error', {msg:'Not authorized', code:401});
+			return false;
+		}
+		return true;
+	};
+
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Attach event listeners to the player
+	var attachEvents = function () {
+		if (player === 0) {
+			return false;
+		}
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player enters a new chunk
+		eventAttachements.push(player.on('enter_chunk', function (chunk) {
+			//Send the chunk to the player
+			socket.emit('chunk', {
+				tx: chunk.pos.tx,
+				ty: chunk.pos.ty,
+				data: chunk.data,
+				size: chunk.size
+			});
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player leaves a chunk
+		eventAttachements.push(player.on('leave_chunk', function (chunk) {
+			//Send a reset chunk for debugging
+			socket.emit('chunk', {
+				tx: chunk.pos.tx,
+				ty: chunk.pos.ty,
+				data: [],
+				size: chunk.size
+			});
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player has moved
+		eventAttachements.push(player.on('move', function (chunk) {
+			//console.log('Actor moving: ' + player.pos.x + ',' + player.pos.y);
+			//Send a reset chunk for debugging
+			io.sockets.emit('actor_update', {
+				id: player.id,
+				pos: player.pos
+			});
+
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when spawning an actor
+		eventAttachements.push(world.on('spawn', function (actor) {
+			if (actor.id === player.id) {
+				//Ignore the message if the actor is the player
+				return;
+			}
+
+			player.socket.emit('spawn', {
+				id: actor.id,
+				pos: actor.pos
+			});
+		
+		}));
+
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when despawning an actor
+		eventAttachements.push(world.on('despawn', function (actor) {
+			if (actor.id === player.id) {
+				//Ignore the message if the actor is the player
+				return;
+			}
+
+			player.socket.emit('despawn', actor.id);
+
+			players = players.filter(function (pl) {
+				return pl.id !== actor.id;
+			});
+
+		}));
+
+		return true;
+		
+	};
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Handle Disconnects
+	socket.on('disconnect', function () {
+		eventAttachements.forEach(function (fn) {
+			fn();
+		})
+		world.playerLeaveWorld(player);
+
+	});
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Handle auth
+	/*
+		This function will authenticate the connection and if it's valid, 
+		return a list of the characters the account has.
+	*/
+	socket.on('auth', function (auth) {
+		isAuthorized = true;
+
+		//Emit list of characters and authorization status
+		socket.emit('auth', {
+			status: 'ok',
+			characters: [0]
+		});
+
+	});
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Log on a character
+	/*
+		This function is responsible for creating the player.
+		It must first authenticate, then it must retreive the ID of the 
+		character that it wants to use.
+	*/
+	socket.on('logon', function (data) {
+		if (!authCheck()) {
+			//return false;
+		}
+
+		//Ok, we can log on to the character.
+		player = world.playerEnterWorld(socket, typeof data !== 'undefined' ? data.id : undefined);
+		attachEvents();
+
+		player.pos.y = 300;
+
+		//Send the actor info to the player
+		socket.emit('player', {
+			id: player.id,
+			pos: player.pos
+		});
+
+		players.forEach(function (pl) {
+			socket.emit('spawn', {
+				id: pl.id,
+				pos: pl.pos
+			});
+		});
+
+		players.push(player);
+
+	});
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Handle chat messages
+	/*
+		This will broadcast the packet unless it's a command.
+	*/
+	socket.on('chat', function (data) {
+		socket.broadcast.emit('chat', data);
+	});
+
+	//////////////////////////////////////////////////////////////////////////////
+	//Handle a move message
+	socket.on('move', function (data) {
+		if (player === 0) {
+			return;
+		}
+
+		console.log('Received move packet: ' + JSON.stringify(data));
+		if (!data.moving) {
+			player.stopMoving();
+		} else {
+			if (data.direction === 'left') player.startMoving({x: -1, y: 0});
+			if (data.direction === 'right') player.startMoving({x: 1, y: 0});
+		}
+	});
+
+	socket.on('test', function (key) {
+		if (player === 0) {
+			return;
+		}
+
+		//Move the player a bit
+		if (key == 37) {
+			player.pos.x -= 10;
+		}
+		if (key == 39) {
+			player.pos.x += 10;
+		}
+		if (key == 38) {
+			player.pos.y -= 10;
+		}
+		if (key == 40) {
+			player.pos.y += 10;
+		}
+
+		player.update(0);
+		world.tick(0);
+		//world.setTile(Math.floor(player.pos.x / 16), Math.floor(player.pos.y / 16), tile.create(27,0,0,0,0));
+
+		//Broadcast the new position
+		io.sockets.emit('actor_update', {
+			id: player.id,
+			pos: player.pos
+		});
+
+	//	console.log('VP: ' + JSON.stringify(player.viewport));
+		
+	})
+
+	
+});
+
+common.log('Starting server on port 7523', true);
+console.log('');
+console.log('Ready for action. Bring it on. SRSLY.'.black.bold);
