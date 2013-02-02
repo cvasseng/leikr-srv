@@ -10,11 +10,17 @@
 		<script src="/socket.io/socket.io.js"></script>
 
 
-		
+		<link href='http://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet' type='text/css'>
 	
 
 		<link href='http://fonts.googleapis.com/css?family=Monda' rel='stylesheet' type='text/css'>
 		<link rel="stylesheet" type="text/css" href="css/style.css">
+
+    <style>
+    #container {
+      font-family: 'Roboto Condensed', sans-serif;
+    }
+    </style>
 
 	</head>
 
@@ -22,7 +28,7 @@
 
 
 	<h2>Leikr Test</h2>
-	<div id="container" style="margin:0 auto;postion:fixed;left:0px;top:0px;"></div>
+	<div id="container" style="position:fixed;left:0px;top:0px;width:100%;height:100%"></div>
 
 </body>
 
@@ -46,13 +52,25 @@ $(document).ready(function () {
 
   var socket = io.connect();
 
+  $(window).resize(function() {
+    lei.world.resize();
+  });
+
   document.body.onkeyup = function (e) {
   	
   	keys[e.keyCode] = false;
 
   	if (keys[65] !== true && keys[68] !== true) {
-  		socket.emit('move', {moving:false});
+  		socket.emit('move', {moving:false, direction:'horizontal'});
+      lei.world.player().applyVelocity(0, lei.world.player().velocity.y);
+      console.log('Removing velocity from player ' + JSON.stringify(lei.world.player().pos));
   	}
+
+    if (keys[83] !== true && keys[87] !== true) {
+      socket.emit('move', {moving:false, direction:'vertical'});
+      lei.world.player().applyVelocity(lei.world.player().velocity.x, 0);
+      console.log('Removing velocity from player ' + JSON.stringify(lei.world.player().pos));
+    }
   };
 
   document.body.onkeydown = function (e) {
@@ -60,15 +78,29 @@ $(document).ready(function () {
   	
   	if (key == 65 && keys[key] !== true) {
 			direction = 'left';
+      lei.world.player().applyVelocity(-1, lei.world.player().velocity.y);
+      console.log('Applying velocity to player');
 		}
 		if (key == 68 && keys[key] !== true) {
 			direction = 'right';
+      lei.world.player().applyVelocity(1,  lei.world.player().velocity.y);
+      console.log('Applying velocity to player');
 		}
 		if (key == 32 && keys[key] !== true) {
 			socket.emit('jump');
 		}
 
-		console.log(key + ' ' + keys[key]);
+    if (key == 87 && keys[key] !== true) {
+      direction = 'up';
+      lei.world.player().applyVelocity(lei.world.player().velocity.x, -1);
+    }
+
+    if (key == 83 && keys[key] !== true) {
+      direction = 'down';
+      lei.world.player().applyVelocity(lei.world.player().velocity.x, 1);
+    }
+
+  //		console.log(key + ' ' + keys[key]);
 
 		keys[key] = true;
 
@@ -77,8 +109,14 @@ $(document).ready(function () {
 				moving: true,
 				direction: direction
 			});
-		}
+		} else {
+
+    }
   };
+
+  socket.on('disconnect', function () {
+    lei.world.flush();
+  });
 
   socket.on('connect', function () {
   	lei.world.clear();
@@ -96,12 +134,17 @@ $(document).ready(function () {
 
   socket.on('player', function (data) {
   	//Data contains a full player package.
+    console.log('Got info on self');
   	lei.world.setPlayerData(data);
   });
 
   socket.on('actor_update', function (data) {
 
   	lei.world.updateActor(data);
+  });
+
+  socket.on('player_correction', function (data) {
+    lei.world.player().move(data.pos.x, data.pos.y);
   });
 
   //Spawn something

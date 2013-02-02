@@ -12,6 +12,8 @@ lei.Surface = function (offscreen) {
 		h: 2000
 	}
 
+	this.context = context;
+
 	////////////////////////////////////////////////////////////////////////////
 	//Resize the canvas
 	this.resize = function (width, height) {
@@ -38,11 +40,19 @@ lei.Surface = function (offscreen) {
 	//};
 	this.canvas = canvas;
 
+
+
 	////////////////////////////////////////////////////////////////////////////
 	//Attach to a DOM node
 	this.appendTo = function (other) {
 		if (typeof other !== 'undefined' && typeof other.appendChild === 'function') {
 			other.appendChild(canvas);
+			context = canvas.getContext("2d");
+			this.context = context;
+			canvas.style['image-rendering'] = '-webkit-optimize-contrast'
+			context.font = "15px Arial";
+			context.webkitImageSmoothingEnabled = false;
+			context.imageSmoothingEnabled = false;
 		}
 	};
 
@@ -50,11 +60,12 @@ lei.Surface = function (offscreen) {
 	//Clear the canvas
 	this.clear = function (col) {
 		if (typeof col !== 'undefined') {
-			context.fillStyle = col;
+			context.fillStyle = typeof col === 'undefined' ? 'black' : col;
 			context.fillRect(0, 0, canvas.width, canvas.height);
 		} else {
 			context.clearRect(0, 0, canvas.width, canvas.height);
 		}
+		context.font = "15px 'Roboto Condensed'";
 	};
 
 
@@ -76,11 +87,14 @@ lei.Surface = function (offscreen) {
 
 	////////////////////////////////////////////////////////////////////////////
 	//Blit a sub-image to the surface
-	this.blitImgTile = function (img, index, x, y, tileSizeX, tileSizeY) {
+	this.blitImgTile = function (img, index, x, y, tileSizeX, tileSizeY, tWidth, tHeight) {
 
 		if (typeof tileSizeY === 'undefined') {
 			tileSizeY = tileSizeX;
 		}
+
+		if (typeof tWidth === 'undefined') tWidth = tileSizeX;
+		if (typeof tHeight === 'undefined') tHeight = tileSizeY;
 
 		if (img instanceof Image) {
 			var tw = Math.floor(img.width / tileSizeX);
@@ -94,7 +108,7 @@ lei.Surface = function (offscreen) {
 				context.drawImage(  
 					img, 
 					sx, sy, tileSizeX, tileSizeY, 
-					x, y, tileSizeX, tileSizeY
+					x, y, tWidth, tHeight
 				);
 			}
 		}
@@ -104,16 +118,26 @@ lei.Surface = function (offscreen) {
 	//Blit text to the surface
 	this.blitText = function (properties) {
 		var def = {
-			font: '10pt Calibri',
-			x: 10,
-			y: 10,
+			font: '12pt Calibri',
+			x: typeof properties.x !== 'undefined' ? properties.x : 10,
+			y: typeof properties.y !== 'undefined' ? properties.y : 10,
 			str: properties.str,
-			color: 'red'
+			align: typeof properties.align !== 'undefined' ? properties.align : 'left',
+			color: '#CCC'
 		};
 
-		context.font = def.font;
+	//	context.font = def.font;
+		//context.font = "15px 'Roboto Condensed'";
+		context.textAlign = properties.align;
 		context.fillStyle = def.color;
+		context.strokeStyle = '#222';
+		context.lineWidth = '2';
+
+		context.strokeText(def.str, def.x, def.y);
 		context.fillText(def.str, def.x, def.y);
+
+		context.lineWidth = '1';
+		
 	};
 
 	//Set background

@@ -11,6 +11,14 @@ html, body {
 
 
 canvas {
-	border:2px dashed #FFF;
+
 	background-color: #000;
+ 	/*image-rendering: -webkit-optimize-contrast;
+	/*image-rendering: optimizeSpeed;             // Older versions of FF
+  image-rendering: -moz-crisp-edges;          // FF 6.0+
+  // Webkit
+                                              //  (Safari now, Chrome soon)
+  image-rendering: optimize-contrast;         // Possible future browsers.
+  -ms-interpolation-mode: nearest-neighbor;   // IE
+  */
 }

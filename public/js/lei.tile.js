@@ -11,91 +11,73 @@ lei.tile = (function () {
 	return {
 		
 		//Create a new tile
-		create: function (tileIndex, bgIndex, tp, solid, health) {
-		  var res = 0;
-		  res = lei.tile.setType(res, tp);
-		  res = lei.tile.setBackground(res, bgIndex);
-		  res = lei.tile.setTile(res, tileIndex);
-		  res = lei.tile.setHealth(res, health);
-		  res = lei.tile.setSolid(res, solid);
-		  return res;
-		},
+	create: function (tileIndex, bgIndex, collision, health) {
+	  var res = 0;
+	  res = lei.tile.setBackground(res, bgIndex);
+	  res = lei.tile.setTile(res, tileIndex);
+	  res = lei.tile.setHealth(res, health);
+	  res = lei.tile.setCollision(res, collision);
+	  return res;
+	},
 
-		//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	//Get the background for a tile
+	background: function (tile) {
+		return (tile & 0x0000FF00) >> 8;
+	},
+
+	//Get the tile index 
+	tile: function (tile) {
+		return (tile & 0x00FF0000) >> 16;
+	},
 
 		//Get the health of a tile
-		health: function (tile) {
-			return (tile & 0x0000000F);
-		},
+	health: function (tile) {
+		return (tile & 0x0F000000) >> 24;
+	},
 
-		//Get the type of a block
-		type: function (tile) {
-			return (tile & 0x001E0000) >> 17;
-		},
+	//Get the solid flag for a tile
+	collision: function (tile) {
+		return (tile & 0x10000000) >> 28;
+	},
 
-		//Get the background for a tile
-		background: function (tile) {
-			return (tile & 0x0001F000) >> 12;
-		},
+	//////////////////////////////////////////////////////////////////////////////
 
-		//Get the foreground of a tile
-		foreground: function (tile) {
-			return false;
-		},
+	//Set the background
+	setBackground: function (tile, background) {
+		background = clamp(background, 255);
+		return (tile & 0xFFFF00FF) | (background << 8); 
+	},
 
-		//Get the tile index 
-		tile: function (tile) {
-			return (tile & 0x00000FF0) >> 4;
-		},
+	//Set the tile index
+	setTile: function (tile, index) {
+		index = clamp(index, 255);
+		return (tile & 0xFF00FFFF) | (index << 16); 
+	},
 
-		//Get the solid flag for a tile
-		solid: function (tile) {
-			return (tile & 0x00200000) >> 21;
-		},
+	//Set the health
+	setHealth: function (tile, health) {
+		health = clamp(health, 15);
+		return (tile & 0xF0FFFFFF) | (health << 24); 
+	},
 
-		//////////////////////////////////////////////////////////////////////////////
+	//Set the solid flag
+	setCollision: function (tile, solid) {
+		solid = clamp(solid, 1);
+		return (tile & 0xEFFFFFFF) | (solid << 28); 
+	},
 
-		//Set the health
-		setHealth: function (tile, health) {
-			health = clamp(health, 15);
-			return (tile & 0xFFFFFFF0) | (health); 
-		},
+	//////////////////////////////////////////////////////////////////////////////
 
-		//Set the type
-		setType: function (tile, tp) {
-			tp = clamp(tp, 31);
-			return (tile & 0xFFE1FFFF) | (tp << 17); 
-		},
-
-		//Set the background
-		setBackground: function (tile, background) {
-			background = clamp(background, 31);
-			return (tile & 0xFFFE0FFF) | (background << 12); 
-		},
-
-		//Set the tile index
-		setTile: function (tile, index) {
-			index = clamp(index, 255);
-			return (tile & 0xFFFFF00F) | (index << 4); 
-		},
-
-		//Set the solid flag
-		setSolid: function (tile, solid) {
-			solid = clamp(solid, 1);
-			return (tile & 0xFFDFFFFF) | (solid << 21); 
-		},
-
-		//////////////////////////////////////////////////////////////////////////////
-
-		//Get an object containing all the tile data
-		getTileData: function(tile) {
-			return {
-				solid: lei.tile.solid(tile),
-				tile: lei.tile.tile(tile),
-				background: lei.tile.background(tile),
-				type: lei.tile.type(tile),
-				health: lei.tile.health(tile)
-			};	
-		}
-	};
+	//Get an object containing all the tile data
+	getTileData: function(tile) {
+		return {
+			collision: lei.tile.collision(tile),
+			tile: lei.tile.tile(tile),
+			background: lei.tile.background(tile),
+			health: lei.tile.health(tile)
+		};	
+	}
+}
 })();

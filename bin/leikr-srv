@@ -169,12 +169,12 @@ function genMap() {
 
 		//Fill downwards until we hit the surface Y
 		for (var y2 = y; y2 < surfaceY; y2++) {
-			world.setTile(x, y2, tile.create(3, 0, 0, 0, 0));
+			world.setTile(x, y2, tile.create(1, 0, 1, 0, 0));
 		}
 
 	}
 
-	//return;
+	return;
 
 	common.progressLog('Generating raw world data', height * 3);
 
@@ -193,7 +193,12 @@ function genMap() {
 	common.progressLog('Building world from raw data', width * height);
 	for (var y = surfaceY; y < height; y++){
 		for (var x = 0; x < width; x++) {
-			world.setTile(x, y, tile.create(Math.floor(noiseMap[x + y * width] * 2) * 3, 0, 0, 0, 0));
+			var t = Math.floor(noiseMap[x + y * width] * 2) * 3;
+			var c = t == 3 ? 1 : 0;
+			if (c) {
+				console.log('added collision at ' + x + ',' + y);
+			}
+			world.setTile(x, y, tile.create(t, 0, c, 0, 0));
 			//console.log(Math.floor(noiseMap[x + y * width] * 15)  );
 			common.progressLog('Building world from raw data', width * height);
 	
@@ -205,24 +210,38 @@ function genMap() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////////////////////////////////////////////////
+//Called when an actor enters a new chunk
+/*
+	This is responsible for sending spawn messages to everyone in the chunk.
+*/
+world.on('actor_enter_chunk', function (actor, chunk) {
+	//Send spawn message
+	io.sockets.in(chunk.id).emit('spawn', actor.createFullUpdateObject());
+});
+
+////////////////////////////////////////////////////////////////////////////////
+//Called when an actor leaves a chunk
+/*
+	This is responsible for sending despawn messages to everyone in the chunk.
+*/	
+world.on('actor_leave_chunk', function (actor, chunk) {
+	//Send a despawn message to the chunk
+//	console.log('Actor ' + actor.id + ' left chunk ' + chunk.id);
+	io.sockets.in(chunk.id).emit('despawn', actor.id);
+});
+
+
 world.on('log', function (err, msg, status) {
 	common.log(msg, err === false, err === false ? undefined : err);
 });
-
-world.on('actor_enter_chunk', function (err, actor, chunk) {
-	common.log('Actor ' + actor.id + ' entered chunk ' + chunk.id, err === false, err === false ? undefined : err);
-});
-
-world.on('actor_leave_chunk', function (err, actor, chunk) {
-	common.log('Actor ' + actor.id + ' left chunk ' + chunk.id, err === false, err === false ? undefined : err);
-});
-
 
 world.on('progress', function (err, msg, max) {
 	common.progressLog(msg, max);
 });
 
-world.on('tile_change', function (err, chunk, tx, ty, tile) {
+world.on('tile_change', function (chunk, tx, ty, tile) {
 
 	//It should be broadcast to all the players on the chunk.
 	chunk.actors.forEach(function (player) {
@@ -273,7 +292,6 @@ io.on('connection', function (socket) {
 		return true;
 	};
 
-
 	//////////////////////////////////////////////////////////////////////////////
 	// Attach event listeners to the player
 	var attachEvents = function () {
@@ -284,70 +302,84 @@ io.on('connection', function (socket) {
 		////////////////////////////////////////////////////////////////////////////
 		// Called when the player enters a new chunk
 		eventAttachements.push(player.on('enter_chunk', function (chunk) {
+			//Join the chunk room
+			socket.join(chunk.id);
+
 			//Send the chunk to the player
 			socket.emit('chunk', {
 				tx: chunk.pos.tx,
 				ty: chunk.pos.ty,
 				data: chunk.data,
+				items: chunk.items,
 				size: chunk.size
 			});
+
+		//	common.log('Player ' + player.id + ' entered chunk, sending spawn', true);
+
+			//Send all the actors in the chunk to the player
+			chunk.actors.forEach(function (actor) {
+				socket.emit('spawn', actor.createFullUpdateObject());
+			});
+
+			console.log('Player ' + player.id + ' entered chunk ' + chunk.id);
+
 		}));
 
 		////////////////////////////////////////////////////////////////////////////
 		// Called when the player leaves a chunk
 		eventAttachements.push(player.on('leave_chunk', function (chunk) {
-			//Send a reset chunk for debugging
-			socket.emit('chunk', {
-				tx: chunk.pos.tx,
-				ty: chunk.pos.ty,
-				data: [],
-				size: chunk.size
+			//Leave the chunk room
+			socket.leave(chunk.id);
+
+			//Need to despawn everything that was here
+			//This might not be needed if the client can book keep things properly.
+			//Future optimization.
+
+			chunk.actors.forEach(function (actor) {
+				if (actor.id !== player.id) {
+					socket.emit('despawn', actor.id);
+				}
+			});	
+
+			console.log('Player ' + player.id + ' left chunk ' + chunk.id);
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player collided with something
+		eventAttachements.push(player.on('colliding', function () {
+			var payload = player.createSmallPacket();
+			payload.velocity.x = 0;
+			payload.velocity.y = 0;
+
+			//Broadcast to the chunks belonging to the player
+			player.chunks.forEach(function (chunk) {
+				io.sockets.in(chunk.id).emit('actor_update', payload);
+			});
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player is done bumping into shit
+		eventAttachements.push(player.on('done_colliding', function () {
+			player.chunks.forEach(function (chunk) {
+				io.sockets.in(chunk.id).emit('actor_update', player.createSmallPacket());
 			});
 		}));
 
 		////////////////////////////////////////////////////////////////////////////
 		// Called when the player has moved
-		eventAttachements.push(player.on('move', function (chunk) {
+		eventAttachements.push(player.on('move', function (update) {
 			//console.log('Actor moving: ' + player.pos.x + ',' + player.pos.y);
 			//Send a reset chunk for debugging
-			io.sockets.emit('actor_update', {
-				id: player.id,
-				pos: player.pos
+			//io.sockets.emit('actor_update', update);
+			//socket.broadcast.emit('actor_update', update);
+
+			//Broadcast to the chunks belonging to the player
+			player.chunks.forEach(function (chunk) {
+				io.sockets.in(chunk.id).emit('actor_update', update);
 			});
 
 		}));
 
-		////////////////////////////////////////////////////////////////////////////
-		// Called when spawning an actor
-		eventAttachements.push(world.on('spawn', function (actor) {
-			if (actor.id === player.id) {
-				//Ignore the message if the actor is the player
-				return;
-			}
-
-			player.socket.emit('spawn', {
-				id: actor.id,
-				pos: actor.pos
-			});
-		
-		}));
-
-
-		////////////////////////////////////////////////////////////////////////////
-		// Called when despawning an actor
-		eventAttachements.push(world.on('despawn', function (actor) {
-			if (actor.id === player.id) {
-				//Ignore the message if the actor is the player
-				return;
-			}
-
-			player.socket.emit('despawn', actor.id);
-
-			players = players.filter(function (pl) {
-				return pl.id !== actor.id;
-			});
-
-		}));
 
 		return true;
 		
@@ -356,11 +388,13 @@ io.on('connection', function (socket) {
 	//////////////////////////////////////////////////////////////////////////////
 	// Handle Disconnects
 	socket.on('disconnect', function () {
+		//Clear event attachements
 		eventAttachements.forEach(function (fn) {
 			fn();
-		})
-		world.playerLeaveWorld(player);
+		});
 
+		//Formally leave the world
+		world.playerLeaveWorld(player);
 	});
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -393,22 +427,17 @@ io.on('connection', function (socket) {
 		}
 
 		//Ok, we can log on to the character.
-		player = world.playerEnterWorld(socket, typeof data !== 'undefined' ? data.id : undefined);
+		player = actors.create({});
 		attachEvents();
-
-		player.pos.y = 300;
+	  world.playerEnterWorld(player);
 
 		//Send the actor info to the player
 		socket.emit('player', {
 			id: player.id,
-			pos: player.pos
-		});
-
-		players.forEach(function (pl) {
-			socket.emit('spawn', {
-				id: pl.id,
-				pos: pl.pos
-			});
+			pos: player.pos,
+			velocity: player.velocity,
+			movespeed: player.movementSpeed,
+			bbox: player.bbox
 		});
 
 		players.push(player);
@@ -431,48 +460,26 @@ io.on('connection', function (socket) {
 			return;
 		}
 
-		console.log('Received move packet: ' + JSON.stringify(data));
+		//console.log('Received move packet: ' + JSON.stringify(data));
+
 		if (!data.moving) {
-			player.stopMoving();
+			//player.stopMoving();
+			if (data.direction === 'horizontal') {
+				player.applyVelocity(0, player.velocity.y);
+			} else {
+				player.applyVelocity(player.velocity.x, 0);
+			}
+
+			socket.emit('player_correction', {
+				pos: player.pos
+			});
 		} else {
-			if (data.direction === 'left') player.startMoving({x: -1, y: 0});
-			if (data.direction === 'right') player.startMoving({x: 1, y: 0});
+			if (data.direction === 'left') player.applyVelocity(-1, player.velocity.y);
+			if (data.direction === 'right') player.applyVelocity(1, player.velocity.y);
+			if (data.direction === 'up') player.applyVelocity(player.velocity.x, -1);
+			if (data.direction === 'down') player.applyVelocity(player.velocity.x, 1);
 		}
 	});
-
-	socket.on('test', function (key) {
-		if (player === 0) {
-			return;
-		}
-
-		//Move the player a bit
-		if (key == 37) {
-			player.pos.x -= 10;
-		}
-		if (key == 39) {
-			player.pos.x += 10;
-		}
-		if (key == 38) {
-			player.pos.y -= 10;
-		}
-		if (key == 40) {
-			player.pos.y += 10;
-		}
-
-		player.update(0);
-		world.tick(0);
-		//world.setTile(Math.floor(player.pos.x / 16), Math.floor(player.pos.y / 16), tile.create(27,0,0,0,0));
-
-		//Broadcast the new position
-		io.sockets.emit('actor_update', {
-			id: player.id,
-			pos: player.pos
-		});
-
-	//	console.log('VP: ' + JSON.stringify(player.viewport));
-		
-	})
-
 	
 });
 
