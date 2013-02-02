@@ -125,6 +125,10 @@ lei.Sprite = function (attr) {
 	this.flip = false;
 	//Name
 	this.name = 'No name';
+	//Check collisions?
+	this.collisionCheck = true;
+	//SHow name?
+	this.showName = true;
 
 	//Sprite velocity
 	this.velocity = {
@@ -195,6 +199,12 @@ lei.Sprite = function (attr) {
 		return false;
 	};
 
+	//Flush animations
+	this.flushAnimations = function () {
+		this.animations = {};
+		_activeAnimation = null;
+	};
+
 	//////////////////////////////////////////////////////////////////////////////
 	// Update
 	this.update = function (time, deltaTime) {
@@ -215,7 +225,7 @@ lei.Sprite = function (attr) {
 		this.bbox.x = newPos.x + this.bbox.offsetX;
 		this.bbox.y = newPos.y + this.bbox.offsetY;
 
-		if (!lei.world.bboxCollides(this.bbox)) {
+		if (!lei.world.bboxCollides(this.bbox) || !this.collisionCheck) {
 			this.pos.x = newPos.x;
 			this.pos.y = newPos.y;
 		} else {
@@ -265,7 +275,14 @@ lei.Sprite = function (attr) {
 												this.size.h * zoom
 											);
 
-		surface.blitText({x:this.pos.x + (this.size.w / 2) - scroll.x, y:this.pos.y - scroll.y, str: this.name, align:'center'});
+		if (this.showName) {
+			surface.blitText({
+												x:( (this.pos.x  + (this.size.w / 2)) * zoom) - scroll.x, 
+												y:(this.pos.y * zoom) - scroll.y, 
+												str: this.name, 
+												align:'center'
+											});
+		}
 	
 		if (_drawBoundingBox) {
 			surface.context.strokeStyle = '#EEEE33';

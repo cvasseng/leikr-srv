@@ -30,6 +30,8 @@ lei.world = (function () {
 	var _chunks = [];
 	//SIze of chunks, we assume they all have the same size
 	var _chunkSize = 0;
+	//Projectiles
+	var _projectiles = [];
 
 	//Our background canvas
 	var bgSurface = new lei.Surface(true);
@@ -57,7 +59,7 @@ lei.world = (function () {
 			x:0,
 			y:0
 		},
-		zoom: 5
+		zoom: 3.5
 	};
 
 	
@@ -214,6 +216,8 @@ lei.world = (function () {
 
 		_deltaTime = (timeMs - _lastFrameTime) / 1000;
 
+		_activeSurfaceBuffer.clear('black');
+
 		//Process chunks
 		if (_pendingChunks.length > 0) {
 			if (processChunk(_pendingChunks[0])) {
@@ -223,14 +227,9 @@ lei.world = (function () {
 			}
 		}
 
-		//Clear the sprite surface
-		spSurface.clear();
-
-		
-
 		//Center the "camera" on the player
-		_cam.position.x = _player.pos.x - ( (_activeSurfaceBuffer.width() / 2)  / _cam.zoom),
-		_cam.position.y = _player.pos.y - ( (_activeSurfaceBuffer.height()  / 2) / _cam.zoom);
+		_cam.position.x = (_player.pos.x * _cam.zoom) - ( (_activeSurfaceBuffer.width() / 2)  ),
+		_cam.position.y = (_player.pos.y * _cam.zoom) - ( (_activeSurfaceBuffer.height()  / 2) );
 
 		//Clamp "camera"
 		if (_cam.position.x < 0) _cam.position.x = 0;
@@ -238,11 +237,17 @@ lei.world = (function () {
 
 		//console.log(JSON.stringify(_cam.position));
 
-		var vpwidth = Math.floor(_activeSurfaceBuffer.width() / _chunkSize) + 2,
-				vpheight = Math.floor(_activeSurfaceBuffer.height() / _chunkSize) + 4,
-				fx = Math.floor(_cam.position.x / _chunkSize),
-				fy = Math.floor(_cam.position.y / _chunkSize)
+		var csp = _chunkSize,
+				vpwidth = Math.floor(_activeSurfaceBuffer.width() / csp ) + 2,
+				vpheight = Math.floor(_activeSurfaceBuffer.height() / csp) + 2,
+				fx = Math.floor( (_player.pos.x + (_activeSurfaceBuffer.width() / 2)) / csp) - 2,
+				fy = Math.floor( (_player.pos.y + (_activeSurfaceBuffer.height() / 2)) /csp) - 2
 				;
+
+		if (fx < 0) fx = 0;
+		if (fy < 0) fy = 0;
+
+		//console.log('Cullbox: ' + fx + ',' + fy + ' to ' + (fx + vpwidth) + ',' + (fy + vpheight));
 
 		//Copy chunks to the tiSurface
 		if (!isFinite(vpwidth) || !isFinite(vpheight)) {
@@ -267,26 +272,32 @@ lei.world = (function () {
 																						_chunkSize * _cam.zoom, 
 																						_chunkSize * _cam.zoom
 																					);
+				} else {
+				//	console.log('Missing chunk [' + tx + ',' + ty + ']');
 				}
 			}
 		}//*/
 
 		//Blit FPS to spSurface
-		spSurface.blitText({str: 'FPS: ' + _fps});
+		_activeSurfaceBuffer.blitText({str: 'FPS: ' + _fps, x:20, y:20});
 
 		//Combine the two surfaces
 		//_activeSurfaceBuffer.blitImgSlice(tiSurface.canvas, 0, 0, tiSurface.width(), tiSurface.height(), 0, 0, tiSurface.width() * _cam.zoom, tiSurface.height() * _cam.zoom);
 
-	//Update the sprites
+		//Update the sprites
 		_sprites.forEach(function (sprite) {
 			sprite.update(timeMs, _deltaTime);
 			sprite.draw(_activeSurfaceBuffer, _cam.position, _cam.zoom);
 		});
 
+		//Update projectiles
+		_projectiles.forEach(function (projectile) {
+			projectile.update(timeMs, _deltaTime);
+			projectile.draw(_activeSurfaceBuffer, _cam.position, _cam.zoom);
+		});
+
 		//_activeSurfaceBuffer.blitImgSlice(spSurface.canvas, 0, 0, _activeSurfaceBuffer.width(), _activeSurfaceBuffer.height(), 0, 0, _activeSurfaceBuffer.width() * _cam.zoom, _activeSurfaceBuffer.height() * _cam.zoom);
 		
-
-
 		//Flip 
 		flipBuffer();
 
@@ -309,17 +320,58 @@ lei.world = (function () {
 	//Return public stuff.
 	return {
 
+		////////////////////////////////////////////////////////////////////////////
+		//Set the zoom factor for the camera
+		setZoomFactor: function (fac) {
+			if (fac < 1) {
+				fac = 1;
+			}
+			_cam.zoom = fac / 10;
+
+
+		},	
+
+		////////////////////////////////////////////////////////////////////////////
 		//Get the player
 		player: function () {
 			return _player;
 		},
 
+		////////////////////////////////////////////////////////////////////////////
 		//Flush
 		flush: function () {
 			_sprites.splice(0, _sprites.length);
 			_sprites.push(_player);
 			_mapData = [];
 			_chunks = [];
+		},
+
+		////////////////////////////////////////////////////////////////////////////
+		// Fire projectile
+		fireProjectile: function (data) {
+			//Add a new projectile. We're using sprites.
+			var projectile = new lei.Sprite();
+			projectile.id = data.id;
+			projectile.applyVelocity(data.dir.x, data.dir.y);
+			projectile.move(data.pos.x, data.pos.y);
+			projectile.collisionCheck = false;
+			projectile.moveSpeed = data.speed;
+			projectile.showName = false;
+			projectile.loadSheet('img/dynamite.png');
+			projectile.flushAnimations();
+			projectile.addAnimation('idle', [0, 1, 2, 1]);
+			projectile.setActiveAnimation('idle');
+		//	projectile.size = data.size;
+			_projectiles.push(projectile);
+		},
+
+		////////////////////////////////////////////////////////////////////////////
+		// Kill projectile
+		killProjectile: function (id) {
+			console.log('Killing projectile ' + id);
+			_projectiles = _projectiles.filter(function (projectile) {
+				return projectile.id !== id;
+			});
 		},
 
 		////////////////////////////////////////////////////////////////////////////
@@ -609,6 +661,8 @@ lei.world = (function () {
 
 				tileInd += tadd;
 
+				chunk.data.data[ctx + cty * chunk.data.size] = tile;
+
 				chunk.surface.blitImgTile(tileset, tileInd, ctx * _tilesize, cty * _tilesize, _tilesize, _tilesize);
 				
 			}
@@ -622,6 +676,20 @@ lei.world = (function () {
 			//tiSurface.bg('#FFF');
 			//tiSurface.clear();
 			//tiSurface.blitImgTile(tileset, lei.tile.tile(tile), tx * _tilesize, ty * _tilesize, _tilesize, _tilesize);
+		},
+
+		//Update surrounding tiles
+		updateSurrounding: function (tx, ty) {
+			lei.world.setTile(tx - 1, ty, _mapData[(tx - 1) + ty * _mapSize.w]  );
+			lei.world.setTile(tx + 1, ty, _mapData[(tx + 1) + ty * _mapSize.w]  );
+			lei.world.setTile(tx , ty - 1, _mapData[tx + (ty - 1) * _mapSize.w]  );
+			lei.world.setTile(tx , ty + 1, _mapData[tx + (ty + 1) * _mapSize.w]  );
+
+			lei.world.setTile(tx - 1, ty - 1, _mapData[(tx - 1) + (ty - 1) * _mapSize.w]  );
+			lei.world.setTile(tx + 1, ty - 1, _mapData[(tx + 1) + (ty - 1) * _mapSize.w]  );
+			lei.world.setTile(tx + 1, ty + 1, _mapData[(tx + 1) + (ty + 1) * _mapSize.w]  );
+			lei.world.setTile(tx - 1, ty + 1, _mapData[(tx - 1) + (ty + 1) * _mapSize.w]  );
+
 		},
 
 		////////////////////////////////////////////////////////////////////////////

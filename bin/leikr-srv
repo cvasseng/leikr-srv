@@ -6,7 +6,8 @@ var tile = require('../lib/lei.tile'),
 		express = require('express'),
 		app = express(),
 		server = require('http').createServer(app),
-		io = require('socket.io').listen(server, { log: false });
+		io = require('socket.io').listen(server, { log: false }),
+		_item = require('../lib/lei.item');
 
 
 common.printFile('welcome.msg');
@@ -210,6 +211,24 @@ function genMap() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+//Called when a projectile is fired
+world.on('projectile_fire', function (projectile) {
+	io.sockets.emit('projectile_fire', {
+		id: projectile.id,
+		pos: projectile.pos,
+		dir: projectile.dir,
+		speed: projectile.speed,
+		size: projectile.size
+	});
+
+});
+
+////////////////////////////////////////////////////////////////////////////////
+//Called when a projectile hits something
+world.on('projectile_hit', function (projectile) {
+	io.sockets.emit('projectile_hit', projectile.id);
+});
 
 ////////////////////////////////////////////////////////////////////////////////
 //Called when an actor enters a new chunk
@@ -243,13 +262,10 @@ world.on('progress', function (err, msg, max) {
 
 world.on('tile_change', function (chunk, tx, ty, tile) {
 
-	//It should be broadcast to all the players on the chunk.
-	chunk.actors.forEach(function (player) {
-		player.socket.emit('tile', {
-			tx: tx,
-			ty: ty,
-			tile: tile
-		})
+	io.sockets.in(chunk.id).emit('tile', {
+		tx: tx,
+		ty: ty,
+		tile: tile
 	});
 
 });
@@ -260,6 +276,7 @@ world.init({
 	height:500
 });
 
+_item.fetchAvailable();
 genMap();
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -431,6 +448,11 @@ io.on('connection', function (socket) {
 		attachEvents();
 	  world.playerEnterWorld(player);
 
+	 // var itm = _item.create(player, 'granade');
+
+	  player.giveItem('granade');
+
+
 		//Send the actor info to the player
 		socket.emit('player', {
 			id: player.id,
@@ -444,13 +466,19 @@ io.on('connection', function (socket) {
 
 	});
 
+	socket.on('projectile_test', function () {
+		//player.fireProjectile();
+		player.use(0);
+	});
+
 	//////////////////////////////////////////////////////////////////////////////
 	// Handle chat messages
 	/*
 		This will broadcast the packet unless it's a command.
 	*/
 	socket.on('chat', function (data) {
-		socket.broadcast.emit('chat', data);
+		//console.log('Chat: ' + data);
+		io.sockets.emit('chat', player.name + ': ' + data);
 	});
 
 	//////////////////////////////////////////////////////////////////////////////

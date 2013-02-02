@@ -1,0 +1,2 @@
+var world = require('./../../../lib/lei.world'),
+		_tile = require('./../../../lib/lei.tile');
