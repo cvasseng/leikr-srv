@@ -253,8 +253,8 @@ lei.world = (function () {
 		if (!isFinite(vpwidth) || !isFinite(vpheight)) {
 			if (typeof webkitRequestAnimationFrame === 'function') {
 				webkitRequestAnimationFrame(update);
-			} else if (typeof requestAnimationFrame === 'function') {
-				requestAnimationFrame(update);
+			} else if (typeof mozRequestAnimationFrame === 'function') {
+				mozRequestAnimationFrame(update);
 			} else {
 				alert('You\'r browser doesn\'t support animation frames...');
 			}
@@ -313,8 +313,8 @@ lei.world = (function () {
 		//Do next frame
 		if (typeof webkitRequestAnimationFrame === 'function') {
 			webkitRequestAnimationFrame(update);
-		} else if (typeof requestAnimationFrame === 'function') {
-			requestAnimationFrame(update);
+		} else if (typeof mozRequestAnimationFrame === 'function') {
+			mozRequestAnimationFrame(update);
 		} else {
 			alert('You\'r browser doesn\'t support animation frames...');
 		}
