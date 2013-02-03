@@ -251,7 +251,13 @@ lei.world = (function () {
 
 		//Copy chunks to the tiSurface
 		if (!isFinite(vpwidth) || !isFinite(vpheight)) {
-			webkitRequestAnimationFrame(update);
+			if (typeof webkitRequestAnimationFrame === 'function') {
+				webkitRequestAnimationFrame(update);
+			} else if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(update);
+			} else {
+				alert('You\'r browser doesn\'t support animation frames...');
+			}
 			return;
 		}
 		
@@ -305,7 +311,13 @@ lei.world = (function () {
 		_frameCounter++;
 
 		//Do next frame
-		webkitRequestAnimationFrame(update);
+		if (typeof webkitRequestAnimationFrame === 'function') {
+			webkitRequestAnimationFrame(update);
+		} else if (typeof requestAnimationFrame === 'function') {
+			requestAnimationFrame(update);
+		} else {
+			alert('You\'r browser doesn\'t support animation frames...');
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////
