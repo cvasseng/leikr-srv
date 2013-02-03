@@ -365,7 +365,7 @@ lei.world = (function () {
 			var projectile = new lei.Sprite();
 			projectile.id = data.id;
 			projectile.applyVelocity(data.dir.x, data.dir.y);
-			projectile.move(data.pos.x, data.pos.y);
+			projectile.move(data.pos.x, data.pos.y - 10);
 			projectile.collisionCheck = false;
 			projectile.moveSpeed = data.speed;
 			projectile.showName = false;
@@ -407,6 +407,17 @@ lei.world = (function () {
 			_player.bbox = data.bbox;
 
 			console.log('Player movespeed is ' + data.movespeed + ' ID is ' + data.id);
+		},
+
+		////////////////////////////////////////////////////////////////////////////
+		// An actor was hit by something
+		actorHit: function (id) {
+			_sprites.forEach(function (actor) {
+				if (actor.id === id) {
+					actor.setActiveAnimation('hit');
+					console.log('Actor hit');
+				}
+			});
 		},
 
 		////////////////////////////////////////////////////////////////////////////

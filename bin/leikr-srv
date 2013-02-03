@@ -231,6 +231,18 @@ world.on('projectile_hit', function (projectile) {
 	io.sockets.emit('projectile_hit', projectile.id);
 });
 
+world.on('actor_stat_change', function (actor, stat) {
+
+	console.log('stat change ' + JSON.stringify(stat));
+		//Damage?
+		if (stat.name === 'health' && stat.value < stat.oldValue) {
+			//Broadcast hit
+			actor.chunks.forEach(function(chunk) {
+				io.sockets.in(chunk.id).emit('actor_hit', actor.id);
+			});
+		}
+});
+
 ////////////////////////////////////////////////////////////////////////////////
 //Called when an actor enters a new chunk
 /*
@@ -435,6 +447,37 @@ io.on('connection', function (socket) {
 		}));
 
 		////////////////////////////////////////////////////////////////////////////
+		// Called when there's a stat change
+		eventAttachements.push(player.on('stat_change', function (stat) {
+
+			//Send to player
+			socket.emit('stat_change', stat);
+
+
+
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player gets an item
+		eventAttachements.push(player.on('item_get', function (itm) {
+			socket.emit('item_get', {
+				id: itm.id,
+				name: itm.properties.name,
+				title: itm.properties.title,
+				description: itm.properties.description,
+				cooldown: itm.properties.useCooldown,
+				decay: itm.properties.decay,
+				inventoryIcon: itm.properties.inventoryIcon
+			});
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
+		// Called when the player looses an item
+		eventAttachements.push(player.on('item_loose', function (itm) {
+			socket.emit('item_loose', itm.id);
+		}));
+
+		////////////////////////////////////////////////////////////////////////////
 		// Called when the player is done bumping into shit
 		eventAttachements.push(player.on('done_colliding', function () {
 			player.chunks.forEach(function (chunk) {
@@ -511,6 +554,7 @@ io.on('connection', function (socket) {
 	 // var itm = _item.create(player, 'granade');
 
 	  player.giveItem('granade');
+	  player.giveItem('slingshot');
 
 
 		//Send the actor info to the player
@@ -526,9 +570,8 @@ io.on('connection', function (socket) {
 
 	});
 
-	socket.on('projectile_test', function () {
-		//player.fireProjectile();
-		player.use(0);
+	socket.on('give_item', function (name) {
+		player.giveItem(name);
 	});
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -539,6 +582,11 @@ io.on('connection', function (socket) {
 	socket.on('chat', function (data) {
 		//console.log('Chat: ' + data);
 		io.sockets.emit('chat', player.name + ': ' + data);
+	});
+
+
+	socket.on('item_use', function (id) {
+		player.use(id);
 	});
 
 	//////////////////////////////////////////////////////////////////////////////

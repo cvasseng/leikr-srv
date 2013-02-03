@@ -1,0 +1,37 @@
+
+.ui-inventory-container {
+	width:288px;
+
+	position:fixed;
+	right:10px;
+	top:10px;
+	border-radius: 5px;
+	list-style: none;
+	/*background-color: #333;/**/
+
+
+	box-sizing:border-box !important;
+  -moz-box-sizing:border-box !important;
+  -webkit-box-sizing:border-box !important;
+}
+
+.ui-inventory-container div {
+
+}
+
+.ui-inventory-container li {
+	width:40px;
+	height:40px;
+	border:1px solid #FFF;
+	border-radius: 4px;
+	margin:4px;
+	background-color: #333;
+	background-repeat: none;
+	background-size: 100%;
+	
+	float:left;
+
+	box-sizing:border-box !important;
+  -moz-box-sizing:border-box !important;
+  -webkit-box-sizing:border-box !important;
+}

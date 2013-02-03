@@ -7,10 +7,13 @@ leieditor.items = (function () {
 		return r;
 	}
 
-	function icon (img) {
+	function icon (img, fn) {
 		var i = document.createElement('li');
 		//i.style.backgroundImage = 'url(/creator/icons/' + img + ')';
 		i.innerHTML = img;
+		if (typeof fn === 'function') {
+			i.onclick = fn;
+		}
 		return i;
 	}
 	
@@ -201,10 +204,14 @@ leieditor.items = (function () {
 			newItem();
 		};
 
+		var give = icon('Give to player', function () {
+			lei.socket.emit('give_item', _selectedItem);
+		});
+
 		_toolbar.appendChild(icon('Delete'));
 		_toolbar.appendChild(save);
 		_toolbar.appendChild(newi);
-		_toolbar.appendChild(icon('Give to player'));
+		_toolbar.appendChild(give);
 
 
 		_container.appendChild(_toolbar);
@@ -230,7 +237,9 @@ leieditor.items = (function () {
 	constructor();
 
 	return {
-	
+		toggle: function () {
+			$(_container).animate({opacity:'toggle'});
+		}
 	}
 
 })();

@@ -8,6 +8,7 @@
 	z-index: 50;
 	border-radius: 5px;
 	overflow:hidden;
+	display:none;
 }
 
 .CodeMirror {

@@ -7,6 +7,7 @@ lei.Animation = function (attr) {
 	var _currentFrame = 0;
 	var _lastSwitchTime = 0;
 	var _paused = false;
+	var _finished = false;
 
 	//////////////////////////////////////////////////////////////////////////////
 	
@@ -14,7 +15,8 @@ lei.Animation = function (attr) {
 		startFrame: 0,
 		fps: 8,
 		loop: true,
-		frames: []
+		frames: [],
+		forceFinish: false
 	};
 
 
@@ -27,14 +29,23 @@ lei.Animation = function (attr) {
 			
 			if (_frameCursor < this.properties.frames.length - 1 )	{
 				_frameCursor++;
+				_finished = false;
 			} else if (this.properties.loop) {
 				_frameCursor = 0;
+			} else {
+				_finished = true;
 			}
 
 			_currentFrame = this.properties.frames[_frameCursor];
 
 			_lastSwitchTime = time;
 		}
+	};
+
+	this.reset = function () {
+		_finished = false;
+		_currentFrame = this.properties.frames[0];
+		_frameCursor = 0;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -60,6 +71,13 @@ lei.Animation = function (attr) {
 			return;	
 		}
  		_paused = f;
+	};
+
+	this.finished = function () {
+		if (this.properties.loop) {
+			return false;
+		}
+		return _finished;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -114,6 +132,8 @@ lei.Sprite = function (attr) {
 	var _activeAnimation = null;
 	//Draw bounding box?
 	var _drawBoundingBox = false;
+	var _lastAnimation;
+	var _direction = 'left';
 
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -233,20 +253,33 @@ lei.Sprite = function (attr) {
 			this.velocity.y = 0;
 		}
 
-		if (this.velocity.x > 0) {
-			this.setActiveAnimation('right');
-		} else if (this.velocity.x < 0) {
-			this.setActiveAnimation('left');
-		} else if (this.velocity.y > 0) {
-			this.setActiveAnimation('down');
-		} else if (this.velocity.y < 0) {
-			this.setActiveAnimation('up');
-		} else {
-			_activeAnimation.gotoFrame('first');
-			_activeAnimation.pause();
+		if (_activeAnimation !== null) {
+
+			if (_activeAnimation.properties.forceFinish && !_activeAnimation.finished()) {
+
+			}  else if (_activeAnimation.properties.forceFinish && _activeAnimation.finished()) {
+				this.setActiveAnimation(_direction);
+				console.log(_lastAnimation);
+			} else {
+				if (this.velocity.x > 0) {
+					this.setActiveAnimation('right');
+					_direction = 'right';
+				} else if (this.velocity.x < 0) {
+					this.setActiveAnimation('left');
+					_direction = 'left';
+				} else if (this.velocity.y > 0) {
+					_direction = 'down';
+					this.setActiveAnimation('down');
+				} else if (this.velocity.y < 0) {
+					this.setActiveAnimation('up');
+					_direction = 'up';
+				} else {
+					_activeAnimation.gotoFrame('first');
+					_activeAnimation.pause();
+				}
+			}
+
 		}
-
-
 
 		//If position, flip or animation frame has changed, tag for redraw
 		this.cullbox.x = this.pos.x;
@@ -294,13 +327,17 @@ lei.Sprite = function (attr) {
 	//////////////////////////////////////////////////////////////////////////////
 	// Set active animation
 	this.setActiveAnimation = function (animation) {
+		_lastAnimation = _activeAnimation;
 		if (lei.isString(animation)) {
 			if (this.animations.hasOwnProperty(animation)) {
 				this.animations[animation].pause(false);
+				this.animations[animation].reset();
 				return this.setActiveAnimation(this.animations[animation]);
 			}
 		} else {
 			_activeAnimation = animation;
+			animation.reset();
+			animation.pause(false);
 			return true;
 		}
 		return false;
@@ -351,6 +388,10 @@ lei.Sprite = function (attr) {
 	this.addAnimation('left', [3, 4, 5, 4]);
 	this.addAnimation('right', [3, 4, 5, 4]);
 	this.addAnimation('idle', [0]);
+
+	this.addAnimation('hit', {frames:[9, 50, 51], forceFinish: true, loop:false});
+
+
 
 	this.setActiveAnimation('right');
 

@@ -17,6 +17,7 @@
 
 		<link href='http://fonts.googleapis.com/css?family=Monda' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="stylesheet" type="text/css" href="css/inventory.css">
 
     <script src="/creator/lib/codemirror.js"></script>
     <script src="/creator/lib/javascript.js"></script>
@@ -40,6 +41,14 @@
       width:480px;
       padding:0px;
       color:#FFF;
+
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      cursor:default;
     }
 
     .ui-hotbar li {
@@ -117,35 +126,40 @@
       border:none;
     }
 
+    .ui-health-bar-container {
+      height:20px;
+      width:200px;
+      position:fixed;
+      left:50%;
+      top:10px;
+      margin-left:-100px;
+      background-color: #333;
+      border:1px solid #FFF;
+      z-index: 30;
+    }
+
+    .ui-health-bar-bar {
+      height:20px;
+      width:100%;
+      background-color: #AA5555;
+    }
+
     </style>
 
 	</head>
 
 <body>
-
+  <div class="ui-health-bar-container">
+    <div class="ui-health-bar-bar" id="health"></div>
+  </div>
 
 	<h2>Leikr Test</h2>
 	<div id="container" style="position:fixed;left:0px;top:0px;width:100%;height:100%"></div>
 
-  <div style="position:fixed; right:10px;top:10px;z-index:20;width:200px;height:200px">
+  <div style="position:fixed; right:10px;bottom:10px;z-index:20;width:200px">
     Zoom test <input type="range" onchange="lei.world.setZoomFactor(this.value);"/>
     Zooming can cause flickering when moving..
   </div>
-
-
-  <ul class="ui-hotbar">
-    <li style="background-image:url('img/shank.png');"><span>1</span></li>
-    <li class="ui-hotbar-selected" style="background-image:url('img/slingshot.png');"><span>2</span></li>
-    <li><span>3</span></li>
-    <li><span>4</span></li>
-    <li><span>5</span></li>
-    <li><span>6</span></li>
-    <li><span>7</span></li>
-    <li><span>8</span></li>
-    <li><span>9</span></li>
-    <li><span>0</span></li>
-
-  </ul>
 
   <div class ="ui-chat-window">
     <div id="chat_output">
@@ -160,6 +174,8 @@
 		<script src="js/lei.surface.js"></script>
 		<script src="js/lei.world.js"></script>
     <script src="js/lei.tile.js"></script>
+    <script src="js/lei.inventory.js"></script>
+    <script src="js/lei.hotbar.js"></script>
     <script src="/creator/js/leieditor.js"></script>
 		
 
@@ -179,60 +195,92 @@ $(document).ready(function () {
     }
   };
 
+  var container = document.getElementById('container');
 	var keys = [];
 
   lei.world.init(document.getElementById('container'));
+  lei.inventory.init();
+  lei.hotbar.init();
 
   var socket = io.connect();
+
+  lei.socket = socket;
+  lei.inTextBox = false;
 
   $(window).resize(function() {
     lei.world.resize();
   });
 
+  container.onblur = function () {
+    lei.inTextBox = true;
+  };
+
+  container.onclick = function () {
+    lei.inTextBox = false;
+  };
+
   document.body.onkeyup = function (e) {
   	
   	keys[e.keyCode] = false;
 
-  	if (keys[65] !== true && keys[68] !== true) {
-  		socket.emit('move', {moving:false, direction:'horizontal'});
-      lei.world.player().applyVelocity(0, lei.world.player().velocity.y);
-      console.log('Removing velocity from player ' + JSON.stringify(lei.world.player().pos));
-  	}
+    if (!lei.inTextBox ) {
+    	if (keys[65] !== true && keys[68] !== true) {
+    		socket.emit('move', {moving:false, direction:'horizontal'});
+        lei.world.player().applyVelocity(0, lei.world.player().velocity.y);
+    	}
 
-    if (keys[83] !== true && keys[87] !== true) {
-      socket.emit('move', {moving:false, direction:'vertical'});
-      lei.world.player().applyVelocity(lei.world.player().velocity.x, 0);
-      console.log('Removing velocity from player ' + JSON.stringify(lei.world.player().pos));
+      if (keys[83] !== true && keys[87] !== true) {
+        socket.emit('move', {moving:false, direction:'vertical'});
+        lei.world.player().applyVelocity(lei.world.player().velocity.x, 0);
+      }
     }
   };
 
   document.body.onkeydown = function (e) {
   	var key = e.keyCode, direction = false;
+
+    if (!lei.inTextBox ) {
   	
-  	if (key == 65 && keys[key] !== true) {
-			direction = 'left';
-      lei.world.player().applyVelocity(-1, lei.world.player().velocity.y);
-      console.log('Applying velocity to player');
-		}
-		if (key == 68 && keys[key] !== true) {
-			direction = 'right';
-      lei.world.player().applyVelocity(1,  lei.world.player().velocity.y);
-      console.log('Applying velocity to player');
-		}
-		if (key == 32 && keys[key] !== true) {
-			socket.emit('projectile_test', {
+    	if (key == 65 && keys[key] !== true) {
+  			direction = 'left';
+        lei.world.player().applyVelocity(-1, lei.world.player().velocity.y);
+        console.log('Applying velocity to player');
+  		}
+  		if (key == 68 && keys[key] !== true) {
+  			direction = 'right';
+        lei.world.player().applyVelocity(1,  lei.world.player().velocity.y);
+        console.log('Applying velocity to player');
+  		}
+  		if (key == 32 && keys[key] !== true) {
+        //Use selected item
+        var sel = lei.hotbar.getActiveID();
+        if (sel) {
+          socket.emit('item_use', sel);
+        }
+  		}
 
-      });
-		}
+      if (key === 73 && keys[key] !== true && !e.ctrlKey) {
+        lei.inventory.toggle();
+      }
 
-    if (key == 87 && keys[key] !== true) {
-      direction = 'up';
-      lei.world.player().applyVelocity(lei.world.player().velocity.x, -1);
-    }
+      if (key >= 49 && key <= 57 && keys[key] !== true) {
+        lei.hotbar.setActive(key - 48);
+      }
 
-    if (key == 83 && keys[key] !== true) {
-      direction = 'down';
-      lei.world.player().applyVelocity(lei.world.player().velocity.x, 1);
+      if (key == 87 && keys[key] !== true) {
+        direction = 'up';
+        lei.world.player().applyVelocity(lei.world.player().velocity.x, -1);
+      }
+
+      if (key == 83 && keys[key] !== true) {
+        direction = 'down';
+        lei.world.player().applyVelocity(lei.world.player().velocity.x, 1);
+      }
+
+      if (key === 73 && keys[key] !== true && e.ctrlKey) {
+        leieditor.items.toggle();
+      }
+
     }
 
   //		console.log(key + ' ' + keys[key]);
@@ -261,6 +309,18 @@ $(document).ready(function () {
     document.getElementById('chat_output').innerHTML += str + '<br/>';
   });
 
+  socket.on('stat_change', function (stat) {
+    //Update the stats
+    if (stat.name === 'health') {
+      document.getElementById('health').style.width = stat.value + '%';
+    }
+  });
+
+  socket.on('actor_hit', function (id) {
+    //Pass it on to the world
+    lei.world.actorHit(id);
+  });
+
   socket.on('disconnect', function () {
     lei.world.flush();
   });
@@ -269,6 +329,10 @@ $(document).ready(function () {
   	lei.world.clear();
   	lei.world.flush();
   	socket.emit('logon');
+  });
+
+  socket.on('item_get', function (itm) {
+    lei.inventory.addItem(itm);
   });
 
   socket.on('tile', function (data) {
