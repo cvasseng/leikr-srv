@@ -1,0 +1,87 @@
+.ui-editor-item-container {
+	position:fixed;
+	left:10px;
+	top:10px;
+	width:800px;
+	height:440px;
+	background-color:#333;
+	z-index: 50;
+	border-radius: 5px;
+	overflow:hidden;
+}
+
+.CodeMirror {
+	height:100% !important;
+}
+
+.ui-editor-item-titlebar {
+	height:20px;
+	text-align: center;
+}
+
+.ui-editor-label {
+	font-size:10px;
+}
+
+.ui-editor-item-toolbar {
+	height:20px;
+
+	margin:0;
+	padding:0;
+}
+
+.ui-editor-item-toolbar li {
+	font-size: 10px;
+	height:100%;
+	width:auto;
+	background-repeat: no-repeat;
+	background-size: 100%;
+	margin:2px;
+	margin-left: 5px;
+	padding:0px;
+	list-style: none;
+	cursor:pointer;
+	float:right;
+
+	box-sizing:border-box !important;
+  -moz-box-sizing:border-box !important;
+  -webkit-box-sizing:border-box !important;
+}
+
+.ui-editor-item-toolbar li:hover {
+	background-color:#A1B8C6;
+	color:#333B40;
+}
+
+.ui-editor-item-properties {
+	width:200px;
+	height:400px;
+	padding:2px;
+	border-right:1px dashed #FFF;
+	float:left;
+
+	box-sizing:border-box !important;
+  -moz-box-sizing:border-box !important;
+  -webkit-box-sizing:border-box !important;
+}
+
+.ui-editor-item-properties select {
+	width:100%;
+}
+
+.ui-editor-item-properties input {
+	width:100%;
+	outline: none;
+
+	box-sizing:border-box !important;
+  -moz-box-sizing:border-box !important;
+  -webkit-box-sizing:border-box !important;
+}
+
+.ui-editor-item-editor {
+	float:left;
+	height:400px;
+	width:600px;
+	background-color: #FFF;
+
+}

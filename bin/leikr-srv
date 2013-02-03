@@ -3,6 +3,7 @@ var tile = require('../lib/lei.tile'),
 		world = require('../lib/lei.world'),
 		common = require('../lib/lei.common'),
 		actors = require('../lib/lei.actor'),
+		fs = require('fs'),
 		express = require('express'),
 		app = express(),
 		server = require('http').createServer(app),
@@ -284,7 +285,66 @@ genMap();
 ///Net stuff
 server.listen(7523);
 
+app.use(express.bodyParser());
+
 app.use(express.static(__dirname + '/../public' ));
+app.use('/creator', express.static(__dirname + '/../creator' ));
+
+
+//Get all items
+app.get('/items', function (req, res) {
+	//Return a list of items
+	res.send(_item.getAvailable());
+});
+
+//Get single item
+app.get('/items/:name', function (req, res) {
+	fs.readFile(__dirname + '/../data/game/items/' + req.params.name + '.js', 'utf-8', function (err, data) {
+		if (!err) {
+			res.send({
+				properties:_item.getSingleMeta(req.params.name), 
+				source:data
+			});
+		} {
+			res.send({
+				properties:_item.getSingleMeta(req.params.name), 
+				source:''
+			});
+		}
+	});
+});
+
+//Post item
+app.post('/items/:name', function (req, res) {
+
+	console.log('Got post request: ' + JSON.stringify(req.body.properties));
+
+	//Save the properties
+	fs.writeFile(__dirname + '/../data/game/items/' + req.params.name + '.json', JSON.stringify(req.body.properties), function (err) {
+		_item.fetchAvailable();
+
+		//Save the script
+		fs.writeFile(__dirname + '/../data/game/items/' + req.params.name + '.js', req.body.source, function (err) {
+			res.send('');
+			_item.createModuleForItem(req.params.name);
+
+			//We could add a call to git add <filenames> and git commit here..
+		});
+
+	});
+
+});
+
+//Get script
+app.get('/script/item/:name', function (req, res) {
+	fs.readFile(__dirname + '/../data/game/items/' + req.params.name + '.js', 'utf-8', function (err, data) {
+		if (!err) {
+			res.send({name:req.params.name, source:data});
+		}
+	});
+});
+
+////////////////////////////////////////////////////////////////////////////////
 
 //This list only contains the other playerss
 var players = [];
