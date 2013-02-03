@@ -14,7 +14,7 @@ function use(user) {
 			world.setTile(a, b, _tile.create(0, 0, 0, 0));
     } else if (tp === 'actor') {
      	//We hit another actor 
-      a.pos.tx += 50;
+      
     }
 	});
 }

@@ -58,24 +58,56 @@ leieditor.items = (function () {
 		for (var p in _selectedProperties) {
 			if (p !== 'name') {
 
-				var val = _selectedProperties[p];
+				var val = _selectedProperties[p], tp = 'input', node;
 
 				_propertyBody.appendChild(label(p));
 
-				var input = document.createElement('input');
-				input.value = val;
+				if (p === 'type') {
+					var options = [
+						'weapon',
+						'consumable',
+						'armor piece'
+					];
 
-				input.onchange = (function (p) {
-					return function () {
-						_selectedProperties[p] = this.value;
-					};
-				})(p);
-
-				if (val === true || val === false) {
-					input.type = 'checkbox';
+					tp = 'dd';
 				}
 
-				_propertyBody.appendChild(input);
+				if (tp === 'dd') {
+					var node = document.createElement('select');
+
+					options.forEach(function (option) {
+						var opt = document.createElement('option');
+						opt.value = option;
+						opt.innerHTML = option;
+						if (option === val) {
+							opt.selected = true;
+						}
+						node.appendChild(opt);
+					});
+
+					node.onchange = (function (p) {
+						return function () {
+								_selectedProperties[p] = node.options[node.selectedIndex].value;
+						};
+					})(p);
+
+					_propertyBody.appendChild(node);
+
+				} else {
+
+					node = document.createElement('input');
+					node.value = val;
+					node.onchange = (function (p) {
+						return function () {
+							_selectedProperties[p] = this.value;
+						};
+					})(p);
+					if (val === true || val === false) {
+						node.type = 'checkbox';
+					}
+					_propertyBody.appendChild(node);
+				}
+
 			}
 		}
 	}
