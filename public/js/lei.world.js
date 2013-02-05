@@ -369,7 +369,11 @@ lei.world = (function () {
 			projectile.collisionCheck = false;
 			projectile.moveSpeed = data.speed;
 			projectile.showName = false;
-			projectile.loadSheet('img/dynamite.png');
+			if (data.spritesheet.length === 0) { 
+			
+			} else {
+				projectile.loadSheet('img/' + data.spritesheet);
+			}
 			projectile.flushAnimations();
 			projectile.addAnimation('idle', [0, 1, 2, 1]);
 			projectile.setActiveAnimation('idle');
@@ -554,10 +558,26 @@ lei.world = (function () {
 		////////////////////////////////////////////////////////////////////////////
 		// Init
 		init: function (target) {
+
+			function mouseHook (e) {
+				var tx = Math.floor( ((e.clientX ) + _cam.position.x)  / (_tilesize * _cam.zoom));
+				var ty = Math.floor( ((e.clientY ) + _cam.position.y)  / (_tilesize * _cam.zoom));
+				console.log(tx + ',' + ty);
+
+				if (typeof lei.socket !== 'undefined') {
+					var sel = lei.inventory.getIDInActiveHotSlot();
+	        if (sel) {
+	          lei.socket.emit('item_use', {id: sel, tx: tx, ty: ty});
+	        }
+				}
+			};
+
+
 			if (typeof target !== 'undefined') {
 				if (typeof target.appendChild === 'function') {
 					_drawBuffers.forEach(function (buffer) {
 						buffer.appendTo(target);
+						buffer.canvas.onmousedown = mouseHook;
 					});
 				}
 			}

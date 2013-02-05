@@ -46,6 +46,7 @@ lei.Animation = function (attr) {
 		_finished = false;
 		_currentFrame = this.properties.frames[0];
 		_frameCursor = 0;
+		_paused = false;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -291,6 +292,7 @@ lei.Sprite = function (attr) {
 	this.draw = function (surface, scroll, zoom) {
 		var frame = _activeAnimation.frame() === null ? 0 : _activeAnimation.frame();
 
+
 		if (typeof scroll === 'undefined') {
 			scroll = {
 				x: 0,
@@ -331,12 +333,12 @@ lei.Sprite = function (attr) {
 		if (lei.isString(animation)) {
 			if (this.animations.hasOwnProperty(animation)) {
 				this.animations[animation].pause(false);
-				this.animations[animation].reset();
+				//this.animations[animation].reset();
 				return this.setActiveAnimation(this.animations[animation]);
 			}
 		} else {
 			_activeAnimation = animation;
-			animation.reset();
+			//animation.reset();
 			animation.pause(false);
 			return true;
 		}
@@ -385,7 +387,7 @@ lei.Sprite = function (attr) {
 
 	this.addAnimation('up', [6, 7, 8, 7]);
 	this.addAnimation('down', [0, 1, 2, 1]);
-	this.addAnimation('left', [3, 4, 5, 4]);
+	this.addAnimation('left', {flip:true, frames:[11, 12, 13, 12]});
 	this.addAnimation('right', [3, 4, 5, 4]);
 	this.addAnimation('idle', [0]);
 

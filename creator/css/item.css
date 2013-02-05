@@ -3,7 +3,7 @@
 	left:10px;
 	top:10px;
 	width:800px;
-	height:440px;
+	height:540px;
 	background-color:#333;
 	z-index: 50;
 	border-radius: 5px;
@@ -56,7 +56,7 @@
 
 .ui-editor-item-properties {
 	width:200px;
-	height:400px;
+	height:100px;
 	padding:2px;
 	border-right:1px dashed #FFF;
 	float:left;
@@ -81,7 +81,7 @@
 
 .ui-editor-item-editor {
 	float:left;
-	height:400px;
+	height:500px;
 	width:600px;
 	background-color: #FFF;
 

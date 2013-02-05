@@ -14,10 +14,14 @@ lei.hotbar = (function () {
 	function slot(num) {
 		var s = document.createElement('li'),
 		 		t = document.createElement('span'),
+		 		stack = document.createElement('span'),
 		 		slotdata = {
 		 			node: s,
-		 			item: null
+		 			stackCountNode: s,
+		 			itemStack: []
 				};
+
+		stack.className = 'ui-hotbar-stack-count';
 
 		t.innerHTML = num;
 		s.appendChild(t);
@@ -40,14 +44,20 @@ lei.hotbar = (function () {
 			var t = e.dataTransfer.getData('text/plain');
 			
 			if (t === 'item') {
-				var item = JSON.parse(e.dataTransfer.getData('item'));
-				slotdata.item = item;
+				var itemStack = JSON.parse(e.dataTransfer.getData('item')),
+						item = itemStack[0];
+				
+				if (itemStack.length > 1) {
+					stack.innerHTML = itemStack.length;
+				}
+				slotdata.itemStack = itemStack;
 				slotdata.node.style.backgroundImage = 'url(img/' + item.inventoryIcon + ')';
 			}
 		
 			e.preventDefault();
 		}
 
+		s.appendChild(stack);
 		return s;
 	}
 
@@ -80,11 +90,33 @@ lei.hotbar = (function () {
 		},
 
 		////////////////////////////////////////////////////////////////////////////
+		// Remove an item from the hotbar
+		remItem: function (name, id) {
+			_slots.forEach(function (slot) {
+
+				slot.itemStack = slot.itemStack.filter(function (r) {
+						if (r.id === id) {
+							if (slot.itemStack.length === 1) {
+								slot.node.style.backgroundImage = 'none';
+							}
+							if (slot.itemStack.length > 1) {
+								slot.stackCountNode.innerHTML = slot.itemStack.length;
+							} else {
+								slot.stackCountNode.innerHTML = '';
+							}
+							return false;
+						}
+						return true;
+				});
+			});
+		},
+
+		////////////////////////////////////////////////////////////////////////////
 		//Get the active items ID
 		getActiveID: function () {
 			var slot = typeof _activeSlot !== 'undefined' ? _activeSlot : false;
-			if (slot) {
-				return _slots[_activeSlot].item === null ? false : _slots[_activeSlot].item.id;
+			if (slot && _slots[slot].itemStack.length > 0) {
+				return _slots[_activeSlot].itemStack[0].id;
 			}
 			return false;
 		},

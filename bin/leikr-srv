@@ -220,7 +220,8 @@ world.on('projectile_fire', function (projectile) {
 		pos: projectile.pos,
 		dir: projectile.dir,
 		speed: projectile.speed,
-		size: projectile.size
+		size: projectile.size,
+		spritesheet: projectile.spritesheet
 	});
 
 });
@@ -460,6 +461,8 @@ io.on('connection', function (socket) {
 		////////////////////////////////////////////////////////////////////////////
 		// Called when the player gets an item
 		eventAttachements.push(player.on('item_get', function (itm) {
+			//This can be optimized - need only send the ID and name if
+			//the data is also located on the client side..
 			socket.emit('item_get', {
 				id: itm.id,
 				name: itm.properties.name,
@@ -467,14 +470,16 @@ io.on('connection', function (socket) {
 				description: itm.properties.description,
 				cooldown: itm.properties.useCooldown,
 				decay: itm.properties.decay,
-				inventoryIcon: itm.properties.inventoryIcon
+				tileset: itm.properties.tileset,
+				inventoryIcon: itm.properties.inventoryIcon,
+				maxStackSize: itm.properties.maxStackSize
 			});
 		}));
 
 		////////////////////////////////////////////////////////////////////////////
 		// Called when the player looses an item
 		eventAttachements.push(player.on('item_loose', function (itm) {
-			socket.emit('item_loose', itm.id);
+			socket.emit('item_loose', itm);
 		}));
 
 		////////////////////////////////////////////////////////////////////////////
@@ -585,8 +590,8 @@ io.on('connection', function (socket) {
 	});
 
 
-	socket.on('item_use', function (id) {
-		player.use(id);
+	socket.on('item_use', function (data) {
+		player.use(data.id, data.tx, data.ty);
 	});
 
 	//////////////////////////////////////////////////////////////////////////////

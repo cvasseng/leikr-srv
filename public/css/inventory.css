@@ -1,18 +1,33 @@
 
 .ui-inventory-container {
-	width:288px;
+	width:488px;
 
 	position:fixed;
-	right:10px;
-	top:10px;
+ 	bottom:10px;
+  left:50%;
+
+  height:40px;
+ 	
+  margin-left:-244px;
+
+
 	border-radius: 5px;
 	list-style: none;
+	color:#fff;
 	/*background-color: #333;/**/
 
 
 	box-sizing:border-box !important;
   -moz-box-sizing:border-box !important;
   -webkit-box-sizing:border-box !important;
+
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor:default;
 }
 
 .ui-inventory-container div {
@@ -22,16 +37,40 @@
 .ui-inventory-container li {
 	width:40px;
 	height:40px;
-	border:1px solid #FFF;
+	border:1px solid #000;
 	border-radius: 4px;
 	margin:4px;
 	background-color: #333;
 	background-repeat: none;
 	background-size: 100%;
-	
+	position:relative;
 	float:left;
 
 	box-sizing:border-box !important;
   -moz-box-sizing:border-box !important;
   -webkit-box-sizing:border-box !important;
+}
+
+.ui-inventory-count {
+	padding:1px;
+  font-family: monospace;
+  font-size: 10px;
+  position:absolute;
+  bottom:0px;
+  right:0px;
+  color:#fff;
+}
+
+.ui-inventory-hotkey {
+	padding:1px;
+  font-family: monospace;
+  font-size: 12px;
+  position:absolute;
+  left:0px;
+  top:0px;
+}
+
+.ui-inventory-hotkey-active {
+	border:1px solid #FFF !important;
+	background-color:#444 !important;
 }

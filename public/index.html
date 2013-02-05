@@ -67,14 +67,20 @@
     }
 
     .ui-hotbar span {
-     
-      
       padding:1px;
       font-family: monospace;
       font-size: 14px;
       position:absolute;
       top:0px;
       left:0px;
+    }
+
+    .ui-hotbar-stack-count {
+      font-size: 10px !important;
+      bottom:0px !important;
+      right:0px !important;
+      top:auto;
+      left:auto;
     }
 
     .ui-hotbar li:hover {
@@ -175,7 +181,7 @@
 		<script src="js/lei.world.js"></script>
     <script src="js/lei.tile.js"></script>
     <script src="js/lei.inventory.js"></script>
-    <script src="js/lei.hotbar.js"></script>
+
     <script src="/creator/js/leieditor.js"></script>
 		
 
@@ -200,7 +206,7 @@ $(document).ready(function () {
 
   lei.world.init(document.getElementById('container'));
   lei.inventory.init();
-  lei.hotbar.init();
+
 
   var socket = io.connect();
 
@@ -253,9 +259,9 @@ $(document).ready(function () {
   		}
   		if (key == 32 && keys[key] !== true) {
         //Use selected item
-        var sel = lei.hotbar.getActiveID();
+        var sel = lei.inventory.getIDInActiveHotSlot();
         if (sel) {
-          socket.emit('item_use', sel);
+          socket.emit('item_use', {id:sel});
         }
   		}
 
@@ -264,7 +270,7 @@ $(document).ready(function () {
       }
 
       if (key >= 49 && key <= 57 && keys[key] !== true) {
-        lei.hotbar.setActive(key - 48);
+        lei.inventory.setActiveHotSlot(key - 48);
       }
 
       if (key == 87 && keys[key] !== true) {
@@ -333,6 +339,10 @@ $(document).ready(function () {
 
   socket.on('item_get', function (itm) {
     lei.inventory.addItem(itm);
+  });
+
+  socket.on('item_loose', function (id) {
+    lei.inventory.remItem(id);
   });
 
   socket.on('tile', function (data) {

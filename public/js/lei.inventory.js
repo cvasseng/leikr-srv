@@ -9,6 +9,10 @@ lei.inventory = (function () {
 	var _inventoryDataContainer = document.createElement('div');
 		//Hint container
 	var _tooltip = document.createElement('div');
+	//Active hot slot
+	var _active = -1;
+	//Is the entire inventory visible?
+	var _visible = false;
 
 	//Show tooltip
 	function buildTooltip(item) {
@@ -19,29 +23,101 @@ lei.inventory = (function () {
 
 	//////////////////////////////////////////////////////////////////////////////
 	//Create an inventory slot
-	function slot(item) {
-		var s = document.createElement('li');
-		s.draggable = true;
+	function slot(itemStack, slot) {
+		var s = document.createElement('li'), 
+				item,
+				count = document.createElement('span');
 
-		if (typeof item.inventoryIcon !== 'undefined') {
-			s.style.backgroundImage = "url('img/" + item.inventoryIcon + "')";
+		s.id = 'slot' + slot;
+		count.className = 'ui-inventory-count';
+
+		if (typeof itemStack !== 'undefined' && itemStack.length > 0) {
+
+			item = itemStack[0];
+
+			count.innerHTML = itemStack.length;
+			
+			s.draggable = true;
+
+			if (typeof item.inventoryIcon !== 'undefined') {
+				s.style.backgroundImage = "url('img/" + item.inventoryIcon + "')";
+			}
+
+			s.title = item.title;
+
+
+
+			s.onmouseover = function () {
+				buildTooltip(item);
+			}
+
+			s.onmouseout = function () {
+				_tooltip.innerHTML = '';
+			}
+
+			s.ondragstart = function (e) {
+				e.dataTransfer.effectAllowed = "all";
+				e.dataTransfer.setData('text/plain', 'item');
+				e.dataTransfer.setData('item', JSON.stringify(itemStack));
+				e.dataTransfer.setData('slot', slot);
+			};
+
+			if (item.maxStackSize > 1 && itemStack.length > 1) {
+				s.appendChild(count);
+			}
 		}
 
-		s.title = item.title;
+		s.ondragenter = function (e) {
 
-		s.onmouseover = function () {
-			buildTooltip(item);
 		}
 
-		s.onmouseout = function () {
-			_tooltip.innerHTML = '';
+		s.ondragover = function (e) {
+			e.preventDefault();
 		}
 
-		s.ondragstart = function (e) {
-			e.dataTransfer.effectAllowed = "all";
-			e.dataTransfer.setData('text/plain', 'item');
-			e.dataTransfer.setData('item', JSON.stringify(item));
-		};
+		s.ondrop = function (e) {
+			var t = e.dataTransfer.getData('text/plain');
+			
+			if (t === 'item') {
+				var sourceStack = JSON.parse(e.dataTransfer.getData('item')),
+						index = parseInt(e.dataTransfer.getData('slot'));
+				
+				//Is there something in this slot?
+				if (itemStack.length > 0) {
+					//Ok. we need to switch places. with the other item.
+					_inventory[index] = itemStack;
+
+				} else {
+					//Nope, we can just set the source to null.
+					_inventory[index] = [];
+				}
+
+				//Set this slot to the data contained in the other slot
+				_inventory[slot] = sourceStack;
+
+				//Rebuild
+				buildUI();
+
+			}
+		
+			e.preventDefault();
+		}
+
+		if (slot < 9) {
+			//This is a hotkey.
+			var hotkey = document.createElement('span');
+			hotkey.className = 'ui-inventory-hotkey';
+			hotkey.innerHTML = slot + 1;
+			s.appendChild(hotkey);
+
+			s.onclick = function () {
+				lei.inventory.setActiveHotSlot(slot + 1);
+			}
+		}
+
+		if (_active === slot) {
+			s.className = 'ui-inventory-hotkey-active';
+		}
 
 		return s;
 	}
@@ -51,12 +127,12 @@ lei.inventory = (function () {
 	function buildUI() {
 		_inventoryDataContainer.innerHTML = '';
 
-		for (var i = 0; i < 48; i++) {
+		for (var i = 0; i < 50; i++) {
 
 			if (typeof _inventory[i] !== 'undefined') {
-				_inventoryDataContainer.appendChild(slot(_inventory[i]));
+				_inventoryDataContainer.appendChild(slot(_inventory[i], i));
 			} else {
-				_inventoryDataContainer.appendChild(slot({}));
+				_inventoryDataContainer.appendChild(slot([], i));
 			}
 
 			
@@ -73,9 +149,14 @@ lei.inventory = (function () {
 			_inventoryContainer.className = 'ui-inventory-container';
 			document.body.appendChild(_inventoryContainer);
 
-			_inventoryContainer.innerHTML = '<div>Inventory</div>'
+		//	_inventoryContainer.innerHTML = '<div>Inventory</div>'
 			_inventoryContainer.appendChild(_inventoryDataContainer);
 			_inventoryContainer.appendChild(_tooltip);
+
+			for (var i = 0; i < 50; i++) {
+				//Init clean inventory
+			//	_inventory.push([]);
+			}
 
 			buildUI();
 		},
@@ -83,7 +164,11 @@ lei.inventory = (function () {
 		////////////////////////////////////////////////////////////////////////////
 		// Toggle
 		toggle: function () {
-			$(_inventoryContainer).animate({opacity: 'toggle'});
+			_visible = !_visible;
+
+			var theight = _visible ? '240px' : '40px';
+
+			$(_inventoryContainer).animate({height: theight});
 		},
 
 		////////////////////////////////////////////////////////////////////////////
@@ -95,8 +180,48 @@ lei.inventory = (function () {
 		////////////////////////////////////////////////////////////////////////////
 		//Add item to inventory
 		addItem: function (item) {
-			_inventory.push(item);
+			var foundSlot = false;
+
+			//Find an available slot
+			_inventory.some(function (i) {
+				if (i.length > 0) {
+					if (i[0].name === item.name && i.length < item.maxStackSize) {
+						i.push(item);
+						foundSlot = true;
+						return true;
+					}
+					return false;
+				}
+			});
+
+			if (!foundSlot) {
+				_inventory.push([item]);
+			}
+
 			buildUI();
+		},
+
+		////////////////////////////////////////////////////////////////////////////
+		// Set active hot slot
+		setActiveHotSlot: function (slot) {
+			_active = slot - 1;
+			if (slot === 0) {
+				_active = 9;
+			}
+
+			$(_inventoryDataContainer).children('.ui-inventory-hotkey-active').removeClass('ui-inventory-hotkey-active');
+
+			$('#slot' + _active).addClass('ui-inventory-hotkey-active');
+		},
+
+		////////////////////////////////////////////////////////////////////////////
+		// Get the ID of the item in a given hot slot
+		getIDInActiveHotSlot: function () {
+		
+			if (_active >= 0 && _active < _inventory.length && (_inventory[_active]).length > 0) {
+				return _inventory[_active][0].id;
+			}
+			return false;
 		},
 
 		////////////////////////////////////////////////////////////////////////////
@@ -109,7 +234,20 @@ lei.inventory = (function () {
 
 		////////////////////////////////////////////////////////////////////////////
 		//Remove item from inventory
-		remItem: function (id) {
+		remItem: function (id) {;
+
+			_inventory.forEach( function (stack, index) {
+				_inventory[index] = stack.filter(function (item) {
+					return item.id !== id;
+				});
+			});
+
+			//Remove it from the inventory
+			_inventory = _inventory.filter(function (stack, index) {
+				return stack.length > 0;
+			});
+
+			buildUI();
 
 		}
 

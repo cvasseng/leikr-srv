@@ -1,0 +1,10 @@
+{
+	"tileset":"terrain_tileset.png",
+
+	"tiles": [
+
+		{"collision":false, "minable":false},
+		{"collision":true, "minable":true, "resultingItems":{"rock":1}}
+
+	]
+}

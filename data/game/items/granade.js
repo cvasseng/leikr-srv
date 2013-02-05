@@ -3,10 +3,10 @@
 function use(user) {
 
 	//Fire grenade from the users position
-	user.fireProjectile(140, 120, function (tp, a, b, c) {
+	user.fireProjectile(140, 120, this.properties.tileset, function (tp, a, b, c) {
 		if (tp === 'wall') {
 			//If we hit a wall, blow it away!
-			world.setTile(a, b, _tile.create(0, 0, 0, 0));
+			user.setTile(a, b, _tile.create(0, 0, 0, 0));
     } else if (tp === 'actor') {
      	//We hit another actor 
       
