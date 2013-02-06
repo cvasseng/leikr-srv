@@ -150,6 +150,7 @@ lei.Sprite = function (attr) {
 	this.collisionCheck = true;
 	//SHow name?
 	this.showName = true;
+	this.dead = false;
 
 	//Sprite velocity
 	this.velocity = {
@@ -238,52 +239,55 @@ lei.Sprite = function (attr) {
 			_activeAnimation.update(time);
 		}
 
-		var newPos = {
-			x: this.pos.x + (this.velocity.x * this.moveSpeed) * deltaTime,
-			y: this.pos.y + (this.velocity.y * this.moveSpeed) * deltaTime
-		};
+		if (!this.dead) {
 
-		this.bbox.x = newPos.x + this.bbox.offsetX;
-		this.bbox.y = newPos.y + this.bbox.offsetY;
+			var newPos = {
+				x: this.pos.x + (this.velocity.x * this.moveSpeed) * deltaTime,
+				y: this.pos.y + (this.velocity.y * this.moveSpeed) * deltaTime
+			};
 
-		if (!lei.world.bboxCollides(this.bbox) || !this.collisionCheck) {
-			this.pos.x = newPos.x;
-			this.pos.y = newPos.y;
-		} else {
-			this.velocity.x = 0;
-			this.velocity.y = 0;
-		}
+			this.bbox.x = newPos.x + this.bbox.offsetX;
+			this.bbox.y = newPos.y + this.bbox.offsetY;
 
-		if (_activeAnimation !== null) {
-
-			if (_activeAnimation.properties.forceFinish && !_activeAnimation.finished()) {
-
-			}  else if (_activeAnimation.properties.forceFinish && _activeAnimation.finished()) {
-				this.setActiveAnimation(_direction);
+			if (!lei.world.bboxCollides(this.bbox) || !this.collisionCheck) {
+				this.pos.x = newPos.x;
+				this.pos.y = newPos.y;
 			} else {
-				if (this.velocity.x > 0) {
-					this.setActiveAnimation('right');
-					_direction = 'right';
-				} else if (this.velocity.x < 0) {
-					this.setActiveAnimation('left');
-					_direction = 'left';
-				} else if (this.velocity.y > 0) {
-					_direction = 'down';
-					this.setActiveAnimation('down');
-				} else if (this.velocity.y < 0) {
-					this.setActiveAnimation('up');
-					_direction = 'up';
-				} else {
-					_activeAnimation.gotoFrame('first');
-					_activeAnimation.pause();
-				}
+				this.velocity.x = 0;
+				this.velocity.y = 0;
 			}
 
-		}
+			if (_activeAnimation !== null ) {
 
-		//If position, flip or animation frame has changed, tag for redraw
-		this.cullbox.x = this.pos.x;
-		this.cullbox.y = this.pos.y;
+				if (_activeAnimation.properties.forceFinish && !_activeAnimation.finished()) {
+
+				}  else if (_activeAnimation.properties.forceFinish && _activeAnimation.finished()) {
+					this.setActiveAnimation(_direction);
+				} else {
+					if (this.velocity.x > 0) {
+						this.setActiveAnimation('right');
+						_direction = 'right';
+					} else if (this.velocity.x < 0) {
+						this.setActiveAnimation('left');
+						_direction = 'left';
+					} else if (this.velocity.y > 0) {
+						_direction = 'down';
+						this.setActiveAnimation('down');
+					} else if (this.velocity.y < 0) {
+						this.setActiveAnimation('up');
+						_direction = 'up';
+					} else {
+						_activeAnimation.gotoFrame('first');
+						_activeAnimation.pause();
+					}
+				}
+
+			}
+
+			//If position, flip or animation frame has changed, tag for redraw
+			this.cullbox.x = this.pos.x;
+			this.cullbox.y = this.pos.y;
+		}
 	};
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -309,7 +313,7 @@ lei.Sprite = function (attr) {
 												this.size.h * zoom
 											);
 
-		if (this.showName) {
+		if (this.showName && !this.dead) {
 			surface.blitText({
 												x:( (this.pos.x  + (this.size.w / 2)) * zoom) - scroll.x, 
 												y:(this.pos.y * zoom) - scroll.y, 
@@ -397,6 +401,7 @@ lei.Sprite = function (attr) {
 	this.addAnimation('idle', [0]);
 
 	this.addAnimation('hit', {frames:[9, 50, 51], forceFinish: true, loop:false});
+	this.addAnimation('die', {frames:[48, 49, 50, 51, 52, 53, 54], forceFinish: true, loop:false});
 
 
 

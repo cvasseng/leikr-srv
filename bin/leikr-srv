@@ -275,6 +275,12 @@ world.on('actor_move', function (actor, update) {
 
 });
 
+world.on('actor_die', function (actor) {
+	actor.chunks.forEach(function (chunk) {
+		io.sockets.in(chunk.id).emit('actor_die', actor.id);
+	});
+});
+
 
 world.on('log', function (err, msg, status) {
 	common.log(msg, err === false, err === false ? undefined : err);

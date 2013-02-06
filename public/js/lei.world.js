@@ -424,6 +424,19 @@ lei.world = (function () {
 		},
 
 		////////////////////////////////////////////////////////////////////////////
+		// An actor has been killed by something
+		actorDied: function (id) {
+			_sprites.forEach(function (actor) {
+				if (actor.id === id) {
+					actor.dead = true;
+					actor.setActiveAnimation('die');
+					actor.getActiveAnimation().reset();
+					console.log('Actor killed');
+				}
+			});
+		},
+
+		////////////////////////////////////////////////////////////////////////////
 		//Update actor
 		updateActor: function (data) {
 			if (data.id === _player.id) {

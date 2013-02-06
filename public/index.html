@@ -322,6 +322,10 @@ $(document).ready(function () {
     }
   });
 
+  socket.on('actor_die', function (id) {
+    lei.world.actorDied(id);
+  });
+
   socket.on('actor_hit', function (id) {
     //Pass it on to the world
     lei.world.actorHit(id);

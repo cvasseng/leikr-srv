@@ -4,7 +4,7 @@ function use (user) {
   user.fireProjectile(240, 120, this.properties.tileset, function (tp, a, b, c) {
     if (tp === 'actor') {
       console.log('Adjusting health of ' + a.id);
-     a.decStat('health', 5); 
+     a.decStat('health', 100); 
     }
   });
 }
