@@ -107,7 +107,7 @@ lei.inventory = (function () {
 			//This is a hotkey.
 			var hotkey = document.createElement('span');
 			hotkey.className = 'ui-inventory-hotkey';
-			hotkey.innerHTML = slot + 1;
+			hotkey.innerHTML =  (slot + 1);
 			s.appendChild(hotkey);
 
 			s.onclick = function () {
@@ -155,7 +155,7 @@ lei.inventory = (function () {
 
 			for (var i = 0; i < 50; i++) {
 				//Init clean inventory
-			//	_inventory.push([]);
+				_inventory.push([]);
 			}
 
 			buildUI();
@@ -175,6 +175,10 @@ lei.inventory = (function () {
 		//Flush the inventory
 		flush: function () {
 			_inventory = [];
+			for (var i = 0; i < 50; i++) {
+				//Init clean inventory
+				_inventory.push([]);
+			}
 		},
 
 		////////////////////////////////////////////////////////////////////////////
@@ -195,7 +199,15 @@ lei.inventory = (function () {
 			});
 
 			if (!foundSlot) {
-				_inventory.push([item]);
+				//Find first available
+				_inventory.some(function (i, index) {
+					if (_inventory[index].length === 0) {
+						_inventory[index].push(item);
+						return true;
+					}
+					return false;
+				});
+				
 			}
 
 			buildUI();
@@ -243,9 +255,9 @@ lei.inventory = (function () {
 			});
 
 			//Remove it from the inventory
-			_inventory = _inventory.filter(function (stack, index) {
-				return stack.length > 0;
-			});
+			//_inventory = _inventory.filter(function (stack, index) {
+		//		return stack.length > 0;
+			//});
 
 			buildUI();
 

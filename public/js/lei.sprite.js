@@ -117,7 +117,7 @@ lei.Sprite = function (attr) {
 		height: 48,
 		x: 0, 
 		y: 0,
-		id: 0,
+		id: -1,
 		animations: {},
 
 		moveSpeed: 30,
@@ -139,7 +139,7 @@ lei.Sprite = function (attr) {
 	//////////////////////////////////////////////////////////////////////////////
 
 	//ID
-	this.id = 0;
+	this.id = -1;
 	//Move speed 
 	this.moveSpeed = 90;
 	//Flip?
@@ -260,7 +260,6 @@ lei.Sprite = function (attr) {
 
 			}  else if (_activeAnimation.properties.forceFinish && _activeAnimation.finished()) {
 				this.setActiveAnimation(_direction);
-				console.log(_lastAnimation);
 			} else {
 				if (this.velocity.x > 0) {
 					this.setActiveAnimation('right');
@@ -343,6 +342,12 @@ lei.Sprite = function (attr) {
 			return true;
 		}
 		return false;
+	};
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Get the active animation
+	this.getActiveAnimation = function () {
+		return typeof _activeAnimation !== 'undefined' ? _activeAnimation : false;
 	};
 
 	//////////////////////////////////////////////////////////////////////////////

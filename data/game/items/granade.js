@@ -6,12 +6,13 @@ function use(user) {
 	user.fireProjectile(140, 120, this.properties.tileset, function (tp, a, b, c) {
 		if (tp === 'wall') {
 			//If we hit a wall, blow it away!
-			user.setTile(a, b, _tile.create(0, 0, 0, 0));
+			user.mineTile(a, b, 3);
     } else if (tp === 'actor') {
      	//We hit another actor 
       
     }
 	});
+  return true;
 }
 
 //Called when picked up

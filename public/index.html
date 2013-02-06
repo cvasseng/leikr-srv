@@ -329,6 +329,7 @@ $(document).ready(function () {
 
   socket.on('disconnect', function () {
     lei.world.flush();
+    lei.inventory.flush();
   });
 
   socket.on('connect', function () {

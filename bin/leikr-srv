@@ -3,6 +3,8 @@ var tile = require('../lib/lei.tile'),
 		world = require('../lib/lei.world'),
 		common = require('../lib/lei.common'),
 		actors = require('../lib/lei.actor'),
+		_minables = require('./../data/game/minables.json'),
+		_wildlife = require('../lib/lei.ai.wildlife'),
 		fs = require('fs'),
 		express = require('express'),
 		app = express(),
@@ -171,7 +173,7 @@ function genMap() {
 
 		//Fill downwards until we hit the surface Y
 		for (var y2 = y; y2 < surfaceY; y2++) {
-			world.setTile(x, y2, tile.create(1, 0, 1, 0, 0));
+			world.setTile(x, y2, tile.create(2, 0, 1, 1, 0));
 		}
 
 	}
@@ -265,6 +267,14 @@ world.on('actor_leave_chunk', function (actor, chunk) {
 	io.sockets.in(chunk.id).emit('despawn', actor.id);
 });
 
+world.on('actor_move', function (actor, update) {
+	//Broadcast to the chunks belonging to the player
+	actor.chunks.forEach(function (chunk) {
+		io.sockets.in(chunk.id).emit('actor_update', update);
+	});
+
+});
+
 
 world.on('log', function (err, msg, status) {
 	common.log(msg, err === false, err === false ? undefined : err);
@@ -293,7 +303,95 @@ world.init({
 _item.fetchAvailable();
 genMap();
 
+function createAI() {
+	var test = actors.create();
+	world.addActor(test);
+	_wildlife.create(test);
+}
+
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+createAI();
+
 ////////////////////////////////////////////////////////////////////////////////
+//                             RESOURCE GETS
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Get for minables
+app.use('/mineables', function (req, res) {
+	res.send(_minables);
+});
+
+////////////////////////////////////////////////////////////////////////////////
+// Get for tileset
+app.use('/tileset', function (req, res) {
+	res.send('');
+});
+
+
+////////////////////////////////////////////////////////////////////////////////
+
 
 ///Net stuff
 server.listen(7523);
@@ -404,14 +502,15 @@ io.on('connection', function (socket) {
 				size: chunk.size
 			});
 
-		//	common.log('Player ' + player.id + ' entered chunk, sending spawn', true);
+			console.log('Player ' + player.id + ' entered chunk ' + chunk.id + ' with ' + chunk.actors.length + ' other actors on it');
 
 			//Send all the actors in the chunk to the player
 			chunk.actors.forEach(function (actor) {
+				console.log('Spawning ' + actor.id + ' for player');
 				socket.emit('spawn', actor.createFullUpdateObject());
 			});
 
-			console.log('Player ' + player.id + ' entered chunk ' + chunk.id);
+			
 
 		}));
 
@@ -499,9 +598,9 @@ io.on('connection', function (socket) {
 			//socket.broadcast.emit('actor_update', update);
 
 			//Broadcast to the chunks belonging to the player
-			player.chunks.forEach(function (chunk) {
-				io.sockets.in(chunk.id).emit('actor_update', update);
-			});
+		//	player.chunks.forEach(function (chunk) {
+			//	io.sockets.in(chunk.id).emit('actor_update', update);
+			//});
 
 		}));
 
@@ -554,11 +653,13 @@ io.on('connection', function (socket) {
 		//Ok, we can log on to the character.
 		player = actors.create({});
 		attachEvents();
+
+
 	  world.playerEnterWorld(player);
 
 	 // var itm = _item.create(player, 'granade');
 
-	  player.giveItem('granade');
+	  player.giveItem('granade', 100);
 	  player.giveItem('slingshot');
 
 

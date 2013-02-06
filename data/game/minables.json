@@ -1,5 +1,6 @@
 [
 	
-	{"tileset":0, "tile":1, "collision":1, "resultingItem":"rock" }
+	{"tileset":0, "tile":1, "collision":1, "resultingItem":"rock", "maxHealth":3, "canRegen": false },
+	{"tileset":0, "tile":2, "collision":1, "resultingItem":"wood", "maxHealth":6, "canRegen": false }
 
 ]

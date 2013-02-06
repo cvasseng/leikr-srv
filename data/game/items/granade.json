@@ -1,1 +1,1 @@
-{"name":"granade","title":"Crazy dymamite","description":"","useCooldown":"1000","decay":"0","tileset":"dynamite.png","foundInWorld":"false","inventoryIcon":"dynamite_icon.png","type":"weapon"}
+{"name":"granade","title":"Crazy dymamite","description":"","useCooldown":"1000","decay":"1","tileset":"dynamite.png","foundInWorld":"false","inventoryIcon":"dynamite_icon.png","type":"weapon","maxStackSize":"200"}

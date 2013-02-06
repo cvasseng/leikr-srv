@@ -32,17 +32,8 @@ lei.world = (function () {
 	var _chunkSize = 0;
 	//Projectiles
 	var _projectiles = [];
-
-	//Our background canvas
-	var bgSurface = new lei.Surface(true);
-	//Our foregraound surface
-	var fgSurface = new lei.Surface(true);
-	//Our main tile surface
-	var tiSurface = new lei.Surface(true);
-	//Our sprite layer
-	var spSurface = new lei.Surface(true);
-	//Text layer
-	var txSurface = new lei.Surface(true);
+	//Visual effects
+	var _effects = [];
 
 	//The active surface buffer
 	var _activeSurfaceBuffer = null;
@@ -59,11 +50,10 @@ lei.world = (function () {
 			x:0,
 			y:0
 		},
-		zoom: 3.5
+		zoom: 4
 	};
-
-	
-	//spSurface.resize(_mapSize.w * _tilesize, _mapSize.h * _tilesize);
+	//Mineables
+	var _resources = [];
 	
 	//The tilesets
 	var tileset = new Image();
@@ -71,7 +61,6 @@ lei.world = (function () {
 
 	//The player
 	var _player = new lei.Sprite({});
-	//_sprites.push(_player);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Flip the buffer
@@ -90,8 +79,7 @@ lei.world = (function () {
 		_activeSurfaceBuffer = _drawBuffers[_activeSurfaceBufferIndex];
 		_activeSurfaceBuffer.canvas.style.display = 'none';
 		_activeSurfaceBuffer.context.webkitImageSmoothingEnabled = false;
-		spSurface.context.webkitImageSmoothingEnabled = false;
-		tiSurface.context.webkitImageSmoothingEnabled = false;
+		_activeSurfaceBuffer.context.mozImageSmoothingEnabled = false;
 
 	};
 
@@ -235,8 +223,6 @@ lei.world = (function () {
 		if (_cam.position.x < 0) _cam.position.x = 0;
 		if (_cam.position.y < 0) _cam.position.y = 0;
 
-		//console.log(JSON.stringify(_cam.position));
-
 		var csp = _chunkSize,
 				vpwidth = Math.floor(_activeSurfaceBuffer.width() / csp ) + 2,
 				vpheight = Math.floor(_activeSurfaceBuffer.height() / csp) + 2,
@@ -246,8 +232,6 @@ lei.world = (function () {
 
 		if (fx < 0) fx = 0;
 		if (fy < 0) fy = 0;
-
-		//console.log('Cullbox: ' + fx + ',' + fy + ' to ' + (fx + vpwidth) + ',' + (fy + vpheight));
 
 		//Copy chunks to the tiSurface
 		if (!isFinite(vpwidth) || !isFinite(vpheight)) {
@@ -266,6 +250,8 @@ lei.world = (function () {
 			for (var tx = fx; tx < fx + vpwidth; tx++) {
 				if (typeof _chunks[ty] !== 'undefined' && typeof _chunks[ty][tx] !== 'undefined') {
 					var s = _chunks[ty][tx].surface.canvas;
+
+					//We need to update the chunk resources here
 
 					_activeSurfaceBuffer.blitImgSlice(
 																						s, 
@@ -287,9 +273,6 @@ lei.world = (function () {
 		//Blit FPS to spSurface
 		_activeSurfaceBuffer.blitText({str: 'FPS: ' + _fps, x:20, y:20});
 
-		//Combine the two surfaces
-		//_activeSurfaceBuffer.blitImgSlice(tiSurface.canvas, 0, 0, tiSurface.width(), tiSurface.height(), 0, 0, tiSurface.width() * _cam.zoom, tiSurface.height() * _cam.zoom);
-
 		//Update the sprites
 		_sprites.forEach(function (sprite) {
 			sprite.update(timeMs, _deltaTime);
@@ -302,8 +285,19 @@ lei.world = (function () {
 			projectile.draw(_activeSurfaceBuffer, _cam.position, _cam.zoom);
 		});
 
-		//_activeSurfaceBuffer.blitImgSlice(spSurface.canvas, 0, 0, _activeSurfaceBuffer.width(), _activeSurfaceBuffer.height(), 0, 0, _activeSurfaceBuffer.width() * _cam.zoom, _activeSurfaceBuffer.height() * _cam.zoom);
-		
+		//Update effects
+		_effects = _effects.filter(function (sprite) {
+			sprite.update(timeMs, _deltaTime);
+			sprite.draw(_activeSurfaceBuffer, _cam.position, _cam.zoom);
+			//If the animation is still playing, return true, if not return false.
+			if (sprite.getActiveAnimation()) {
+				return !sprite.getActiveAnimation().finished();
+			} else {
+				return false;
+			}
+			return true;
+		});
+
 		//Flip 
 		flipBuffer();
 
@@ -354,6 +348,7 @@ lei.world = (function () {
 		flush: function () {
 			_sprites.splice(0, _sprites.length);
 			_sprites.push(_player);
+			_player.id = -1;
 			_mapData = [];
 			_chunks = [];
 		},
@@ -386,6 +381,9 @@ lei.world = (function () {
 		killProjectile: function (id) {
 			console.log('Killing projectile ' + id);
 			_projectiles = _projectiles.filter(function (projectile) {
+				if (projectile.id === id) {
+					lei.world.explode(projectile.pos.x, projectile.pos.y);
+				}
 				return projectile.id !== id;
 			});
 		},
@@ -419,6 +417,7 @@ lei.world = (function () {
 			_sprites.forEach(function (actor) {
 				if (actor.id === id) {
 					actor.setActiveAnimation('hit');
+					actor.getActiveAnimation().reset();
 					console.log('Actor hit');
 				}
 			});
@@ -431,7 +430,7 @@ lei.world = (function () {
 				return;
 			}
 
-			console.log('Updating actor: ' + JSON.stringify(data));
+			//console.log('Updating actor: ' + JSON.stringify(data));
 			_sprites.forEach(function (actor) {
 				if (actor.id === data.id) {
 					actor.move(data.pos.x, data.pos.y);
@@ -483,10 +482,9 @@ lei.world = (function () {
 			collision.
 		*/
 		collision: function (tx, ty) {
-
-
 			if (tx >= 0 && tx < _mapSize.w && ty >= 0 && ty < _mapSize.h) {
-				return lei.tile.collision( _mapData[tx + ty * _mapSize.w] );
+				var tile =  _mapData[tx + ty * _mapSize.w];
+				return lei.tile.health(tile) > 0 && lei.tile.collision(tile);
 			}	
 			return true;
 		},
@@ -548,8 +546,6 @@ lei.world = (function () {
 			var w = $(window).width(),
 					h = $(window).height();
 
-			tiSurface.resize(w, h);
-			spSurface.resize(w, h);
 			_drawBuffers.forEach(function (buffer) {
 				buffer.resize(w, h);
 			});
@@ -587,6 +583,15 @@ lei.world = (function () {
 
 			//Flip
 			flipBuffer();
+
+			//Load the minables
+			$.ajax({
+				url: '/mineables',
+				dataType: 'json',
+				success: function (data) {
+					_resources = data;
+				}
+			});
 
 			//Start the main loop
 			update();
@@ -627,19 +632,35 @@ lei.world = (function () {
 			_pendingChunks.push(chunk);
 		},
 
+		explode: function (x, y, spriteSheet) {
+			var sprite = new lei.Sprite();
+			sprite.flushAnimations();
+			sprite.addAnimation('explode', {fps:16, loop:false, forceFinish:true, frames:[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]});
+			sprite.move(x, y);
+			sprite.setActiveAnimation('explode');
+			sprite.showName = false;
+			sprite.collisionCheck = false;
+			sprite.loadSheet(typeof spriteSheet !== 'undefined' ? spriteSheet : 'img/explosion.png');
+			sprite.size.w = 50;
+			sprite.size.h = 32;
+			_effects.push(sprite);
+		},
+
 		////////////////////////////////////////////////////////////////////////////
 		// Set tile
 		setTile: function (tx, ty, tile) {
 
 			//Read a tile index - falls back to _mapData if out of bounds
 			function rt(chunk, tx_, ty_) {
+				var tile;
 				if (tx_ < 0 || ty_ < 0 || tx_ >= chunk.data.size || ty_ >= chunk.data.size) {
 					tx_ += chunk.data.tx;
 					ty_ += chunk.data.ty;
-					return lei.tile.tile(_mapData[tx_ + ty_ * _mapSize.w]);
+					tile = _mapData[tx_ + ty_ * _mapSize.w];
+					return lei.tile.health(tile) > 0 ? lei.tile.tile(tile) : -1;
 				}
-
-				return lei.tile.tile( chunk.data.data[tx_ + ty_ * chunk.data.size] );
+				tile = chunk.data.data[tx_ + ty_ * chunk.data.size];
+				return lei.tile.health(tile) > 0 ? lei.tile.tile(tile) : -1;
 			}
 			
 			var ctx = Math.floor((tx * _tilesize) / _chunkSize),
@@ -704,10 +725,21 @@ lei.world = (function () {
 
 				tileInd += tadd;
 
-				chunk.data.data[ctx + cty * chunk.data.size] = tile;
+				//Blit background
+				chunk.surface.blitImgTile(tileset, lei.tile.background(tile), ctx * _tilesize, cty * _tilesize, _tilesize, _tilesize);
 
-				chunk.surface.blitImgTile(tileset, tileInd, ctx * _tilesize, cty * _tilesize, _tilesize, _tilesize);
-				
+				//Has the health decreased?
+				if (lei.tile.health(chunk.data.data[ctx + cty * chunk.data.size]) > lei.tile.health(tile)) {
+					//Play a "this thing got destroyed a bit, yo" animation
+					lei.world.explode(tx * _tilesize, ty * _tilesize, 'img/rock_explode.png');
+				}
+
+				if (lei.tile.health(tile) > 0) {
+					
+					chunk.surface.blitImgTile(tileset, tileInd, ctx * _tilesize, cty * _tilesize, _tilesize, _tilesize);
+				}
+
+				chunk.data.data[ctx + cty * chunk.data.size] = tile;
 			}
 
 			_mapData[tx + ty * _mapSize.w] = tile;
