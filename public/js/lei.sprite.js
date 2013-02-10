@@ -11,6 +11,7 @@ lei.Animation = function (attr) {
 
 	//////////////////////////////////////////////////////////////////////////////
 	
+	//Animation properties
 	this.properties = {
 		startFrame: 0,
 		fps: 8,
@@ -18,8 +19,6 @@ lei.Animation = function (attr) {
 		frames: [],
 		forceFinish: false
 	};
-
-
 
 	//////////////////////////////////////////////////////////////////////////////
 	//Update the animation
@@ -42,6 +41,8 @@ lei.Animation = function (attr) {
 		}
 	};
 
+	//////////////////////////////////////////////////////////////////////////////
+	//Reset the animation
 	this.reset = function () {
 		_finished = false;
 		_currentFrame = this.properties.frames[0];
@@ -109,32 +110,18 @@ lei.Animation = function (attr) {
 
 lei.Sprite = function (attr) {
 	
-	//Constructor
-	this.properties = {
-		flip: false,
-		spriteSheet: 'img/sprite.png',
-		width: 32, 
-		height: 48,
-		x: 0, 
-		y: 0,
-		id: -1,
-		animations: {},
-
-		moveSpeed: 30,
-		velocity: {
-			x: 0,
-			y: 0
-		}
-	};
-
 	//Sprite sheet
 	var _spriteSheet = new Image();
 	//Active animation
 	var _activeAnimation = null;
 	//Draw bounding box?
 	var _drawBoundingBox = false;
+	//The animation that was active before the currently active one
 	var _lastAnimation;
+	//The direction of the sprite
 	var _direction = 'left';
+	//Private declarations
+	this._mouseOver = false;
 
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -150,7 +137,10 @@ lei.Sprite = function (attr) {
 	this.collisionCheck = true;
 	//SHow name?
 	this.showName = true;
+	//Is the sprie alive?
 	this.dead = false;
+	//Animations
+	this.animations = {};
 
 	//Sprite velocity
 	this.velocity = {
@@ -170,7 +160,7 @@ lei.Sprite = function (attr) {
 		h: 32
 	};
 
-	//THe cullbox
+	//The cullbox
 	this.cullbox = {
 		x: 0,
 		y: 0,
@@ -212,7 +202,6 @@ lei.Sprite = function (attr) {
 	this.addAnimation = function (name, attr, set) {
 		if (lei.isString(name) && lei.isNull(this.animations[name])) {
 			this.animations[name] = new lei.Animation(attr);
-			this.properties.animations[name] = attr;
 			if (set === true) {
 				this.setActiveAnimation(this.animations[name]);
 			}
@@ -221,6 +210,7 @@ lei.Sprite = function (attr) {
 		return false;
 	};
 
+	//////////////////////////////////////////////////////////////////////////////
 	//Flush animations
 	this.flushAnimations = function () {
 		this.animations = {};
@@ -295,7 +285,6 @@ lei.Sprite = function (attr) {
 	this.draw = function (surface, scroll, zoom) {
 		var frame = _activeAnimation.frame() === null ? 0 : _activeAnimation.frame();
 
-
 		if (typeof scroll === 'undefined') {
 			scroll = {
 				x: 0,
@@ -336,12 +325,10 @@ lei.Sprite = function (attr) {
 		if (lei.isString(animation)) {
 			if (this.animations.hasOwnProperty(animation)) {
 				this.animations[animation].pause(false);
-				//this.animations[animation].reset();
 				return this.setActiveAnimation(this.animations[animation]);
 			}
 		} else {
 			_activeAnimation = animation;
-			//animation.reset();
 			animation.pause(false);
 			return true;
 		}
@@ -374,36 +361,22 @@ lei.Sprite = function (attr) {
 			}
 		}
 
-		for (var p in this.properties.animations) {
-			this.addAnimation(p, this.properties.animations);
+		for (var p in this.animations) {
+			this.addAnimation(p, this.animations);
 		}
 	};
 
-	this.loadSheet('img/player_tileset.png');
 	this.attr(attr);
 
-	//this.id = 0;
-
-	this.animations = {};
-	//this.cullbox = {};//new cb.gfx.Box(this.properties.x, this.properties.y, 0, 0);
-	//this.cullbox.width = this.properties.width;
-	//this.cullbox.height = this.properties.height;
-
-
-	//Private declarations
-	this._mouseOver = false;
-
+	this.loadSheet('img/player_tileset.png');
 
 	this.addAnimation('up', [6, 7, 8, 7]);
 	this.addAnimation('down', [0, 1, 2, 1]);
 	this.addAnimation('left', {flip:true, frames:[11, 12, 13, 12]});
 	this.addAnimation('right', [3, 4, 5, 4]);
 	this.addAnimation('idle', [0]);
-
 	this.addAnimation('hit', {frames:[9, 50, 51], forceFinish: true, loop:false});
 	this.addAnimation('die', {frames:[48, 49, 50, 51, 52, 53, 54], forceFinish: true, loop:false});
-
-
 
 	this.setActiveAnimation('right');
 

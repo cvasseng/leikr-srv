@@ -1,0 +1,22 @@
+{
+	"name":"",
+	"title":"",
+	"description":"",
+	"sprite":"",
+	"aggressiveness":"netural",
+	"comfortTemperature":20,
+	"preferPack":false,
+	"movementSpeed":90,
+	"stats":{
+		"health":40
+	},
+	"lootTable":{
+		"bone":100
+	},
+	"inventory":{
+
+	},
+	"behavior": [
+		"roaming"
+	]
+}

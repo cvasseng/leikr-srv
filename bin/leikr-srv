@@ -3,8 +3,9 @@ var tile = require('../lib/lei.tile'),
 		world = require('../lib/lei.world'),
 		common = require('../lib/lei.common'),
 		actors = require('../lib/lei.actor'),
-		_minables = require('./../data/game/minables.json'),
+		_minables = require('./../data/game/config/minables.json'),
 		_wildlife = require('../lib/lei.ai.wildlife'),
+		_rest = require('../lib/lei.rest'),
 		fs = require('fs'),
 		express = require('express'),
 		app = express(),
@@ -316,29 +317,7 @@ function createAI() {
 }
 
 createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
-createAI();
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -363,12 +342,64 @@ app.use('/tileset', function (req, res) {
 
 ///Net stuff
 server.listen(7523);
-
 app.use(express.bodyParser());
+_rest.setup(app);
+
+
 
 app.use(express.static(__dirname + '/../public' ));
 app.use('/creator', express.static(__dirname + '/../creator' ));
 
+/*
+//Get all sprites
+app.get('/sprites', function (req, res) {
+	//Return a list of items
+	fs.readdir(__dirname + '/../data/game/sprites/', function (err, files) {
+		r = [];
+		files.forEach(function (file) {
+			if (file.indexOf('.json') > 0) {
+				r.push(JSON.parse(fs.readFileSync(__dirname + '/../data/game/sprites/' + file, 'utf-8')));
+			}
+		});
+		res.send(r);
+	});
+});
+
+//Get single sprite
+app.get('/sprites/:name', function (req, res) {
+	console.log("fetching sprite " + req.params.name);
+	if (fs.exists(__dirname + '/../data/game/sprites/' + req.params.name + '.json')) {
+		var r = {
+			properties: JSON.parse(fs.readFileSync(__dirname + '/../data/game/sprites/' + req.params.name + '.json')),
+			script:'' 
+		};
+		res.send(r);
+	} else {
+		res.send('');
+	}
+});
+
+//Get config
+app.get('/config', function (req, res) {
+	//Return a list of items
+	res.send([
+		{name:'minables', title:'Resources'}
+	]);
+});
+
+//Get crafting
+app.get('/crafting', function (req, res) {
+	//Return a list of items
+	res.send([
+		{name:'minables', title:'Resources'}
+	]);
+});
+
+//Get tilesets
+app.get('/tilesets', function (req, res) {
+	//Return a list of items
+	res.send(_item.getAvailable());
+});
 
 //Get all items
 app.get('/items', function (req, res) {
@@ -384,11 +415,8 @@ app.get('/items/:name', function (req, res) {
 				properties:_item.getSingleMeta(req.params.name), 
 				source:data
 			});
-		} {
-			res.send({
-				properties:_item.getSingleMeta(req.params.name), 
-				source:''
-			});
+		} else {
+			res.send({});
 		}
 	});
 });
@@ -397,6 +425,10 @@ app.get('/items/:name', function (req, res) {
 app.post('/items/:name', function (req, res) {
 
 	console.log('Got post request: ' + JSON.stringify(req.body.properties));
+
+	if (!fs.exists(__dirname + '/../data/game/items/' + req.params.name + '.json')) {
+
+	}
 
 	//Save the properties
 	fs.writeFile(__dirname + '/../data/game/items/' + req.params.name + '.json', JSON.stringify(req.body.properties), function (err) {
@@ -414,6 +446,32 @@ app.post('/items/:name', function (req, res) {
 
 });
 
+app.post('/sprite/new/', function (req, res) {
+	var propTemplate = JSON.parse(fs.readFileSync(__dirname + '/../data/templates/sprite.tem', 'utf-8'));
+	propTemplate.name = req.body.name;
+
+	fs.writeFile(__dirname + '/../data/game/sprites/' + req.body.name + '.json', JSON.stringify(propTemplate), function (err) {
+		res.send('');
+	});
+});
+
+app.post('/item/new/', function (req, res) {
+	//Save the properties
+	var propTemplate = JSON.parse(fs.readFileSync(__dirname + '/../data/templates/item.tem', 'utf-8'));
+	var scriptTemplate = fs.readFileSync(__dirname + '/../data/templates/item.script.tem', 'utf-8');
+
+	propTemplate.name = req.body.name;
+	propTemplate.title = req.body.name;
+
+	fs.writeFile(__dirname + '/../data/game/items/' + req.body.name + '.json', JSON.stringify(propTemplate), function (err) {
+		_item.fetchAvailable();
+		fs.writeFile(__dirname + '/../data/game/items/' + req.body.name + '.js', scriptTemplate, function (err) {
+			res.send('');
+			_item.createModuleForItem(req.body.name);
+		});
+	});
+});
+
 //Get script
 app.get('/script/item/:name', function (req, res) {
 	fs.readFile(__dirname + '/../data/game/items/' + req.params.name + '.js', 'utf-8', function (err, data) {
@@ -422,6 +480,8 @@ app.get('/script/item/:name', function (req, res) {
 		}
 	});
 });
+
+*/
 
 ////////////////////////////////////////////////////////////////////////////////
 

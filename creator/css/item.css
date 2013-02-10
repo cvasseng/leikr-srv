@@ -11,10 +11,6 @@
 	display:none;
 }
 
-.CodeMirror {
-	height:100% !important;
-}
-
 .ui-editor-item-titlebar {
 	height:20px;
 	text-align: center;
@@ -29,6 +25,15 @@
 
 	margin:0;
 	padding:0;
+}
+
+.ui-editor-item-toolbar li {
+	background-size: 100%;
+	background-repeat: no-repeat;
+	margin:2px;
+	float:left;
+	height:18px;
+	width:18px;
 }
 
 .ui-editor-item-toolbar li {

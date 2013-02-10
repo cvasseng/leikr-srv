@@ -1,0 +1,166 @@
+
+.ui-leikr-ide {
+	position:fixed;
+	left:0px;
+	top:0px;
+	width:100%;
+	height:100%;
+	background-color:#222;
+	z-index: 30;
+	display:none;
+	padding:0px;
+}
+
+.CodeMirror {
+	height:auto !important;
+	width:auto !important;
+}
+
+.ui-leikr-ide-output {
+	position: fixed;
+	left:0px;
+	bottom:0px;
+	height:100px;
+	width:100%;
+	background-color: #000;
+	color:#FFF;
+	font-family: monospace;
+	overflow-y:scroll;
+}
+
+.ui-leikr-ide-toolbar {
+	position:fixed;
+	left:0px;
+	top:0px;
+	height:25px;
+	border-bottom:1px solid #000;
+	background-color: #333;
+	list-style: none;
+}
+
+.ui-leikr-ide-toolbar li {
+	background-size: 100%;
+	background-repeat: no-repeat;
+	margin:3px;
+	float:left;
+	height:18px;
+	width:18px;
+	cursor:pointer;
+}
+
+.ui-leikr-ide-toolbar li:hover {
+	opacity: 0.5;
+} 
+
+.ui-leikr-ide-jsoneditor {
+	position:fixed;
+	left:0px;
+	top:0px;
+
+	background-color: #FFF;
+	overflow-y:scroll;
+}
+
+.ui-leikr-dropbox {
+	position:absolute;
+	width:388px;
+	bottom: 0px;
+	left:0px;
+	text-align: center;
+	color:#FFF;
+	line-height: 40px;
+	height:40px;
+	border:3px dashed #FFF;
+	margin:4px;
+}
+
+.ui-leikr-ide-imagepanel {
+	position:fixed;
+	top:0px;
+	right:0px;
+	width:400px;
+	background-color: #222;
+}
+
+.ui-leikr-previewimage {
+	background-repeat: no-repeat;
+	background-size: 100%;
+	background-position: center center;
+
+	width:280px;
+	height:280px;
+
+	border:1px solid #222;
+}
+
+.ui-leikr-ide-resourcepanel {
+	width:300px;
+	border-right:2px dashed #333;
+	overflow-y:scroll;
+	overflow-x:hidden;
+	float:left;
+}
+
+.ui-leikr-ide-label {
+	text-align: left;
+	color:#FFF;
+	font-size:25px;
+	font-weight:bold;
+	border-bottom:1px dashed #333;
+	margin-bottom:4px;
+	cursor:pointer;
+	padding-left:20px;
+	background-image: url('/creator/icons/subitem.png');
+	background-position: left center;
+	background-repeat: no-repeat;
+}
+
+.ui-leikr-ide-resourcepanel ul div span {
+	background-repeat: no-repeat;
+	background-size: 16px 16px;
+	background-position: right center;
+	background-image:url('/creator/icons/add.png');
+	float:right;
+	width:20px;
+	height:40px;
+	cursor:pointer;
+}
+
+.ui-leikr-ide-resourcepanel ul {
+	list-style: none;
+	margin:10px;
+	padding:0px;
+}
+
+.ui-leikr-ide-resourcepanel ul li {
+	background-color: #333;
+	cursor:pointer;
+	margin-bottom: 2px;
+	padding:2px;
+	height:18px;
+	font-size:12px;
+	padding-left:20px;
+	background-repeat: no-repeat;
+	background-size: 16px 16px;
+	background-position: left center;
+}
+
+.ui-leikr-ide-resourcepanel-sel {
+	background-color:#555!important;
+}
+
+.ui-leikr-ide-resourcepanel ul li:hover  {
+	background-color:#000;
+}
+
+.ui-leikr-ide-resourcepanel ul li span {
+	float:right;
+	color:#555;
+	background-image: none !important;
+	width:auto;
+	height:auto;
+}
+
+.ui-leikr-ide-resourcepanel ul li img {
+	float:left;
+}

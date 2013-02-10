@@ -1,0 +1,1 @@
+{"name":"wildtest","title":"WILDTEST","description":"","sprite":"","aggressiveness":"netural","comfortTemperature":"20","preferPack":"false","movementSpeed":"90","stats":{"health":"40"},"lootTable":{"bone":"100"},"behavior":["roaming"]}

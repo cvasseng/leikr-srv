@@ -120,7 +120,7 @@ leieditor.items = (function () {
 		var name = prompt('Enter the internal name');
 
 		$.ajax({
-			url:'/items/' + name,
+			url:'/items/new/' + name,
 			dataType:'json',
 			type: 'POST',
 			data: {source: '', properties: {name:name}},

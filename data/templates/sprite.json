@@ -1,0 +1,7 @@
+{
+	"name":"",
+	"spritesheet":"",
+	"animations":[
+		{"name":"idle", "frames":[0]}
+	]
+}

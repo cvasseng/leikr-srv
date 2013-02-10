@@ -19,11 +19,13 @@ var leieditor = (function () {
 
 	//Include the creator stuff
 	var _css = [
-		'item.css'
+		'item.css',
+		'ide.css'
 	];
 
 	var _js = [
-		'leieditor.item.js'
+		'leieditor.item.js',
+		'leieditor.ide.js'
 	];
 
 	_css.forEach(function (css) {
