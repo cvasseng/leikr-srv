@@ -11,8 +11,8 @@
   "dependencies": {
    	"colors":"*",
     "optimist":">=0.0.1",
-    "socket.io":"*",
-    "express":"*",
+    "socket.io":"0.9.15",
+    "express":"3.17.5",
     "progress":"*"
   }
 }
